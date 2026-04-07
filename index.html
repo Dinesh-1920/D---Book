@@ -366,7 +366,31 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 <body>
 
 <!-- LOCK -->
-<div class="screen" id="lockScreen">
+<!-- AUTH SCREEN -->
+<div class="screen" id="authScreen" style="align-items:center;justify-content:center">
+  <div class="lk-bg"><div class="lk-orb lk-orb1"></div><div class="lk-orb lk-orb2"></div></div>
+  <div style="position:relative;z-index:2;width:100%;max-width:320px;padding:24px;animation:fu .7s ease both">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:66px;height:66px;border-radius:20px;background:var(--S2);border:1px solid var(--BR);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-family:DM Serif Display,serif;font-size:26px;color:var(--M)">D</div>
+      <div style="font-family:DM Serif Display,serif;font-size:26px;color:var(--INK)" id="authTitle">Welcome Back</div>
+      <div style="font-size:12px;color:var(--MUT);margin-top:4px" id="authSub">Sign in to your diary</div>
+    </div>
+    <div id="authErr" style="background:rgba(255,77,77,.1);border:1px solid rgba(255,77,77,.3);border-radius:10px;padding:10px 14px;font-size:13px;color:#ff6b6b;margin-bottom:12px;display:none"></div>
+    <input id="authEmail" class="fi" type="email" placeholder="Email address" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()">
+    <input id="authPass" class="fi" type="password" placeholder="Password (min 6 chars)" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')doAuth()">
+    <input id="authName" class="fi" placeholder="Your name" style="margin-bottom:10px;display:none">
+    <button id="authBtn" onclick="doAuth()" class="svb" style="margin-bottom:14px">Sign In</button>
+    <div style="text-align:center;font-size:13px;color:var(--MUT)">
+      <span id="authToggleTxt">No account yet?</span>
+      <span onclick="toggleAuthMode()" style="color:var(--M);cursor:pointer;font-weight:600;margin-left:4px" id="authToggleBtn">Sign Up</span>
+    </div>
+    <div style="text-align:center;margin-top:12px">
+      <span onclick="resetPassword()" style="font-size:12px;color:var(--MUT);cursor:pointer;text-decoration:underline">Forgot password?</span>
+    </div>
+  </div>
+</div>
+
+<div class="screen hidden" id="lockScreen">
   <div class="lk-bg"><div class="lk-orb lk-orb1"></div><div class="lk-orb lk-orb2"></div></div>
   <div class="lk-inner">
     <div class="lk-logo">D</div>
@@ -687,7 +711,155 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 <input type="file" id="editImgPk" accept="image/*" multiple style="display:none" onchange="handleEditPhotos(event)">
 <input type="file" id="newEntryImgPk" accept="image/*" multiple style="display:none" onchange="handleI(event)">
 
+<!-- Firebase SDKs load synchronously before main script -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
+// ── FIREBASE CONFIG ──────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBG3sbDvC60xym08SB1SCpMWz3x-k1Q660",
+  authDomain: "d-book-aff71.firebaseapp.com",
+  projectId: "d-book-aff71",
+  storageBucket: "d-book-aff71.firebasestorage.app",
+  messagingSenderId: "111389807573",
+  appId: "1:111389807573:web:05a03f6a4962a38911e35c"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+let currentUser = null;
+let authMode = 'signin'; // 'signin' or 'signup'
+
+// ── AUTH FUNCTIONS ────────────────────────────────────────
+function toggleAuthMode(){
+  authMode = authMode==='signin'?'signup':'signin';
+  const isSignup = authMode==='signup';
+  document.getElementById('authTitle').textContent = isSignup?'Create Account':'Welcome Back';
+  document.getElementById('authSub').textContent = isSignup?'Start your diary journey':'Sign in to your diary';
+  document.getElementById('authBtn').textContent = isSignup?'Create Account':'Sign In';
+  document.getElementById('authToggleTxt').textContent = isSignup?'Already have an account?':"Don't have an account?";
+  document.getElementById('authToggleBtn').textContent = isSignup?'Sign In':'Sign Up';
+  document.getElementById('authName').style.display = isSignup?'block':'none';
+  document.getElementById('authErr').style.display='none';
+}
+function showAuthErr(msg){
+  const el=document.getElementById('authErr');
+  el.textContent=msg;el.style.display='block';
+}
+async function doAuth(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  const btn=document.getElementById('authBtn');
+  if(!email||!pass){showAuthErr('Please enter email and password');return;}
+  btn.textContent='Please wait...';btn.disabled=true;
+  document.getElementById('authErr').style.display='none';
+  try{
+    if(authMode==='signup'){
+      const name=document.getElementById('authName').value.trim()||'Dinesh';
+      const cred=await auth.createUserWithEmailAndPassword(email,pass);
+      await cred.user.updateProfile({displayName:name});
+      await db.collection('users').doc(cred.user.uid).set({name,email,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    } else {
+      await auth.signInWithEmailAndPassword(email,pass);
+    }
+  } catch(e){
+    const msgs={'auth/email-already-in-use':'Email already registered — sign in instead',
+      'auth/wrong-password':'Wrong password','auth/user-not-found':'No account with this email',
+      'auth/weak-password':'Password must be at least 6 characters',
+      'auth/invalid-email':'Invalid email address','auth/invalid-credential':'Wrong email or password'};
+    showAuthErr(msgs[e.code]||e.message);
+    btn.textContent=authMode==='signup'?'Create Account':'Sign In';btn.disabled=false;
+  }
+}
+async function resetPassword(){
+  const email=document.getElementById('authEmail').value.trim();
+  if(!email){showAuthErr('Enter your email first, then click Forgot Password');return;}
+  try{await auth.sendPasswordResetEmail(email);showAuthErr('Reset email sent — check your inbox');}
+  catch(e){showAuthErr('Could not send reset email');}
+}
+function signOut(){
+  if(!confirm('Sign out?'))return;
+  auth.signOut();
+}
+
+// ── FIREBASE DATA FUNCTIONS ───────────────────────────────
+async function loadFromCloud(){
+  const uid=currentUser.uid;
+  try{
+    const [eSnap,tSnap,rSnap]=await Promise.all([
+      db.collection('users').doc(uid).collection('entries').orderBy('ts','desc').get(),
+      db.collection('users').doc(uid).collection('tasks').get(),
+      db.collection('users').doc(uid).collection('rooms').get()
+    ]);
+    entries=eSnap.docs.map(d=>({...d.data(),id:d.id}));
+    tasks=tSnap.docs.map(d=>({...d.data(),id:d.id}));
+    rooms=rSnap.empty?JSON.parse(JSON.stringify(DEFAULT_ROOMS)):rSnap.docs.map(d=>({...d.data(),id:d.id}));
+    if(rooms.length===0)rooms=JSON.parse(JSON.stringify(DEFAULT_ROOMS));
+  }catch(e){
+    console.error('Load error',e);
+    entries=[];tasks=[];rooms=JSON.parse(JSON.stringify(DEFAULT_ROOMS));
+  }
+  trackSession();expandRecurring();
+}
+async function savE(){
+  if(!currentUser)return;
+  const uid=currentUser.uid;
+  const batch=db.batch();
+  entries.forEach(e=>{
+    const ref=db.collection('users').doc(uid).collection('entries').doc(e.id);
+    batch.set(ref,e);
+  });
+  try{await batch.commit();}catch(e){console.error('savE error',e);}
+}
+async function savT(){
+  if(!currentUser)return;
+  const uid=currentUser.uid;
+  const batch=db.batch();
+  tasks.forEach(t=>{
+    const ref=db.collection('users').doc(uid).collection('tasks').doc(t.id);
+    batch.set(ref,t);
+  });
+  try{await batch.commit();}catch(e){console.error('savT error',e);}
+}
+async function savR(){
+  if(!currentUser)return;
+  const uid=currentUser.uid;
+  const batch=db.batch();
+  rooms.forEach(r=>{
+    const ref=db.collection('users').doc(uid).collection('rooms').doc(r.id);
+    batch.set(ref,r);
+  });
+  try{await batch.commit();}catch(e){console.error('savR error',e);}
+}
+
+// ── AUTH STATE LISTENER — runs when page loads ────────────
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    currentUser=user;
+    // Hide auth, hide lock, show loading
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('lockScreen').classList.add('hidden');
+    // Load user name
+    try{
+      const uDoc=await db.collection('users').doc(user.uid).get();
+      const uName=uDoc.exists?uDoc.data().name:(user.displayName||'Dinesh');
+      localStorage.setItem('dlv5_name',uName);
+    }catch(e){}
+    // Go straight into app — no PIN needed (Firebase already authenticated)
+    await openApp();
+  } else {
+    currentUser=null;
+    // Show auth screen, hide everything else
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.add('hidden');
+  }
+});
+
 const PIN='1920';
 let currentPIN=localStorage.getItem('dlv5_pin')||PIN;
 const DEFAULT_ROOMS=[
@@ -702,7 +874,7 @@ const ICONS=['','','','','','','','','','','','','','','','','','','','','','','
 const COLORS=['linear-gradient(135deg,#c9184a,#ff4d6d)','linear-gradient(135deg,#6a2fa0,#9b59b6)','linear-gradient(135deg,#1a5c8e,#4361ee)','linear-gradient(135deg,#1a6b4a,#06d6a0)','linear-gradient(135deg,#7a4012,#e67e22)','linear-gradient(135deg,#2e4a6b,#06d6a0)','linear-gradient(135deg,#4a1a1a,#c9184a)','linear-gradient(135deg,#1a1a4a,#4361ee)','linear-gradient(135deg,#1a4a1a,#27ae60)','linear-gradient(135deg,#2a2a2a,#555)'];
 const COLOR_THUMBS=['#c9184a','#6a2fa0','#1a5c8e','#1a6b4a','#7a4012','#2e4a6b','#4a1a1a','#1a1a4a','#1a4a1a','#2a2a2a'];
 const BW=[52,58,54,62,50,56,60]; // bigger books
-let pin='',entries=[],tasks=[],rooms=[],wbStrokes=[];
+let _pin='',entries=[],tasks=[],rooms=[],wbStrokes=[];
 let curRoom=null,editId=null,editPid=null,editRoomId=null,curPageId=null,pageEditMode=false;
 let pImgs=[],selMood='',selColor='#c9184a',selPT='task',selRecDays=[];
 let selRoomIcon='',selRoomColor=0;
@@ -710,12 +882,9 @@ let calY=new Date().getFullYear(),calM=new Date().getMonth(),selCalDs=null;
 let planD=new Date();
 let wbTool='pen',wbColor='#f0eff5',wbDrawing=false,wbCtx=null,currentStroke=null;
 
-function load(){
-  try{entries=JSON.parse(localStorage.getItem('dlv5_e')||'[]');}catch(e){entries=[];}
-  try{tasks=JSON.parse(localStorage.getItem('dlv5_t')||'[]');}catch(e){tasks=[];}
-  try{const r=localStorage.getItem('dlv5_r');rooms=r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_ROOMS));}catch(e){rooms=JSON.parse(JSON.stringify(DEFAULT_ROOMS));}
+async function load(){
+  await loadFromCloud();
   try{wbStrokes=JSON.parse(localStorage.getItem('dlv5_wb')||'[]');}catch(e){wbStrokes=[];}
-  trackSession();expandRecurring();
 }
 function savE(){localStorage.setItem('dlv5_e',JSON.stringify(entries));}
 function savT(){localStorage.setItem('dlv5_t',JSON.stringify(tasks));}
@@ -743,24 +912,33 @@ function expandRecurring(){
 }
 
 // PIN
-function kp(k){if(pin.length>=4)return;pin+=k;dots();if(pin.length===4)setTimeout(chkPin,180);}
-function kd(){if(pin.length){pin=pin.slice(0,-1);dots();}}
-function dots(){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('err');d.classList.toggle('on',i<pin.length);}}
-function chkPin(){if(pin===currentPIN){document.getElementById('lockScreen').classList.add('hidden');openApp();}else{for(let i=0;i<4;i++)document.getElementById('d'+i).classList.add('err');setTimeout(()=>{pin='';dots();},700);}}
+function kp(k){if(_pin.length>=4)return;_pin+=k;dots();if(_pin.length===4)setTimeout(chkPin,180);}
+function kd(){if(_pin.length){_pin=_pin.slice(0,-1);dots();}}
+function dots(){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('err');d.classList.toggle('on',i<_pin.length);}}
+function chkPin(){if(_pin===currentPIN){document.getElementById('lockScreen').classList.add('hidden');openApp();}else{for(let i=0;i<4;i++)document.getElementById('d'+i).classList.add('err');setTimeout(()=>{_pin='';dots();},700);}}
 
-function openApp(){
-  load();
+async function openApp(){
+  // Make sure auth and lock are hidden, main is visible
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('lockScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  // Load data
+  await load();
+  // Set greeting with real name
+  const savedName=localStorage.getItem('dlv5_name')||'Dinesh';
   const h=new Date().getHours();
   const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
-  document.getElementById('greet').textContent=g+', Dinesh';
+  document.getElementById('greet').textContent=g+', '+savedName;
   document.getElementById('hdate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('mainApp').classList.remove('hidden');
+  // Build all tabs
   buildDash();buildNBs();buildCal();buildPlanner();
-  const savedName=localStorage.getItem('dlv5_name')||'Dinesh';
-  document.getElementById('profNameInput').value=savedName;
-  document.getElementById('profNameDisplay').textContent=savedName;
-  document.getElementById('profAvatar').textContent=savedName[0].toUpperCase();
-  document.getElementById('greet').textContent=(new Date().getHours()<12?'Good morning':new Date().getHours()<17?'Good afternoon':'Good evening')+', '+savedName;
+  // Profile
+  const profName=document.getElementById('profNameInput');
+  const profDisp=document.getElementById('profNameDisplay');
+  const profAvt=document.getElementById('profAvatar');
+  if(profName)profName.value=savedName;
+  if(profDisp)profDisp.textContent=savedName;
+  if(profAvt)profAvt.textContent=savedName[0].toUpperCase();
 }
 function switchTab(t,el){
   document.querySelectorAll('.tp').forEach(x=>x.classList.remove('on'));
@@ -1396,14 +1574,16 @@ function exportData(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='DineshLife_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();
   toast('Backup exported!');
 }
-function importData(ev){
+async function importData(ev){
   const file=ev.target.files[0];if(!file)return;
-  const r=new FileReader();r.onload=e=>{
+  const r=new FileReader();r.onload=async e=>{
     try{
       const d=JSON.parse(e.target.result);
       if(d.entries)entries=d.entries;if(d.tasks)tasks=d.tasks;if(d.rooms)rooms=d.rooms;
-      savE();savT();savR();buildDash();buildNBs();buildCal();buildPlanner();buildProf();
-      toast('Data imported successfully!');
+      toast('Uploading to cloud...');
+      await savE();await savT();await savR();
+      buildDash();buildNBs();buildCal();buildPlanner();buildProf();
+      toast('Data imported to cloud!');
     }catch(e){toast('Invalid backup file.');}
   };r.readAsText(file);
 }
