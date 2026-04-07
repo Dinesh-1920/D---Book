@@ -1592,12 +1592,11 @@ function buildPhotoEditCanvas(imgs,eid){
   imgs.forEach((src,i)=>{
     const l=layout[i]||{x:10+i*22,y:10+i*22,w:140,h:110};
     html+='<div class="note-img-block" id="nib_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px" '
-      +'onpointerdown="imgBlockDown(event,'+i+')">'
+      +'onpointerdown="window.imgBlockDown(event,'+i+')">'
       +'<img src="'+src+'">'
       +'<div class="img-sel-ring"></div>'
-      +'<div class="idel" onpointerdown="event.stopPropagation()" onclick="delNoteImg('+i+')">×</div>'
-      +'<div class="rsz" onpointerdown="rszDown(event,'+i+')">'
-      +'<svg viewBox="0 0 10 10"><path d="M2 8 L8 8 L8 2"/></svg>'
+      +'<div class="idel" onpointerdown="event.stopPropagation()" onclick="window.delNoteImg('+i+')">×</div>'
+      +'<div class="rsz" onpointerdown="window.rszDown(event,'+i+')"><svg viewBox="0 0 10 10"><path d="M2 8 L8 8 L8 2"/></svg>'
       +'</div>'
       +'</div>';
   });
