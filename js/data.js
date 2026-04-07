@@ -1,7 +1,7 @@
 // Data save/load functions
-const PIN='1920';
-let currentPIN=localStorage.getItem('dlv5_pin')||PIN;
-const DEFAULT_ROOMS=[
+const BIG_BOOK_WIDTHS=[52,58,54,62,50,56,60]; // bigger books
+
+const DEFAULT_ROOMS_DATA=[
   {id:'startup',name:'Startup',icon:'',desc:'Ideas, wins & lessons',bg:'linear-gradient(135deg,#c9184a,#ff4d6d)',custom:false},
   {id:'personal',name:'Personal',icon:'',desc:'Life, feelings & growth',bg:'linear-gradient(135deg,#6a2fa0,#9b59b6)',custom:false},
   {id:'dreams',name:'Dreams',icon:'',desc:'Wishes & night visions',bg:'linear-gradient(135deg,#1a5c8e,#4361ee)',custom:false},
@@ -12,7 +12,6 @@ const DEFAULT_ROOMS=[
 const ICONS=['','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''];
 const COLORS=['linear-gradient(135deg,#c9184a,#ff4d6d)','linear-gradient(135deg,#6a2fa0,#9b59b6)','linear-gradient(135deg,#1a5c8e,#4361ee)','linear-gradient(135deg,#1a6b4a,#06d6a0)','linear-gradient(135deg,#7a4012,#e67e22)','linear-gradient(135deg,#2e4a6b,#06d6a0)','linear-gradient(135deg,#4a1a1a,#c9184a)','linear-gradient(135deg,#1a1a4a,#4361ee)','linear-gradient(135deg,#1a4a1a,#27ae60)','linear-gradient(135deg,#2a2a2a,#555)'];
 const COLOR_THUMBS=['#c9184a','#6a2fa0','#1a5c8e','#1a6b4a','#7a4012','#2e4a6b','#4a1a1a','#1a1a4a','#1a4a1a','#2a2a2a'];
-const BW=[52,58,54,62,50,56,60]; // bigger books
 
 async function loadFromCloud(){
   const uid=currentUser.uid;
@@ -24,11 +23,11 @@ async function loadFromCloud(){
     ]);
     entries=eSnap.docs.map(d=>({...d.data(),id:d.id}));
     tasks=tSnap.docs.map(d=>({...d.data(),id:d.id}));
-    rooms=rSnap.empty?JSON.parse(JSON.stringify(DEFAULT_ROOMS)):rSnap.docs.map(d=>({...d.data(),id:d.id}));
-    if(rooms.length===0)rooms=JSON.parse(JSON.stringify(DEFAULT_ROOMS));
+    rooms=rSnap.empty?JSON.parse(JSON.stringify(DEFAULT_ROOMS_DATA)):rSnap.docs.map(d=>({...d.data(),id:d.id}));
+    if(rooms.length===0)rooms=JSON.parse(JSON.stringify(DEFAULT_ROOMS_DATA));
   }catch(e){
     console.error('Load error',e);
-    entries=[];tasks=[];rooms=JSON.parse(JSON.stringify(DEFAULT_ROOMS));
+    entries=[];tasks=[];rooms=JSON.parse(JSON.stringify(DEFAULT_ROOMS_DATA));
   }
   trackSession();expandRecurring();
 }

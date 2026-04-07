@@ -60,7 +60,7 @@ function renderRoom(){
     const shelfOuter=document.createElement('div');shelfOuter.className='shelf-outer';
     const bks=document.createElement('div');bks.className='shbk';
     [...ents].reverse().forEach((e,i)=>{
-      const w=BW[i%BW.length],h=118+(i%3)*18; // bigger heights
+      const w=BIG_BOOK_WIDTHS[i%BIG_BOOK_WIDTHS.length],h=118+(i%3)*18; // bigger heights
       const b=document.createElement('div');b.className='bk';b.style.width=w+'px';
       b.onclick=()=>openPage(e.id);
       let inn='<div class="bs" style="width:'+w+'px;height:'+h+'px;background:'+e.color+'">';

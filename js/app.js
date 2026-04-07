@@ -1,9 +1,6 @@
 // App: init, tabs, routing, overlays, profile/history
 // Global variables
 let entries=[],tasks=[],rooms=[],selMood='',selColor='#c9184a',pImgs=[],editId=null,curRoom=null,curPageId='',pageEditMode=false,selWeekDay=0,calMonth=new Date().getMonth(),calYear=new Date().getFullYear(),editRoomId=null,selRoomIcon='',selRoomColor=0,selRecDays=[],editTaskId=null;
-
-// Global stubs
-const BW=[80,90,100,110,120,130,140,150,160];
 const COLORS=['#c9184a','#e63946','#f77f00','#fcbf49','#eae2b7','#a8dadc','#457b9d','#1d3557','#f72585','#7209b7','#3a0ca3','#4361ee','#4cc9f0','#4895ef','#560bad','#7209b7','#f72585','#b5179e','#ff006e','#ffbe0b','#fb5607','#ff006e','#8338ec','#3a86ff','#06ffa5','#ff9f1c','#e71d36','#2ec4b6','#f77f00','#d62828','#003566','#fcbf49','#f77f00','#e63946','#a8dadc','#457b9d','#1d3557','#f72585','#7209b7','#3a0ca3','#4361ee','#4cc9f0','#4895ef','#560bad','#7209b7','#f72585','#b5179e','#ff006e','#ffbe0b','#fb5607','#ff006e','#8338ec','#3a86ff','#06ffa5','#ff9f1c','#e71d36','#2ec4b6','#f77f00','#d62828','#003566','#fcbf49'];
 const COLOR_THUMBS=['#c9184a','#e63946','#f77f00','#fcbf49','#a8dadc','#457b9d','#1d3557','#f72585','#7209b7','#3a0ca3','#4361ee','#4cc9f0','#4895ef','#560bad','#7209b7','#f72585','#b5179e','#ff006e','#ffbe0b','#fb5607','#ff006e','#8338ec','#3a86ff','#06ffa5','#ff9f1c','#e71d36','#2ec4b6','#f77f00','#d62828','#003566','#fcbf49'];
 const DEFAULT_ROOMS=[

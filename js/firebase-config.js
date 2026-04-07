@@ -63,6 +63,9 @@ async function resetPassword(){
   try{await auth.sendPasswordResetEmail(email);showAuthErr('Reset email sent — check your inbox');}
   catch(e){showAuthErr('Could not send reset email');}
 }
+async function doSignOut(){
+  await auth.signOut();
+}
 
 // ── AUTH STATE LISTENER — runs when page loads ────────────
 auth.onAuthStateChanged(async user=>{
@@ -96,3 +99,4 @@ auth.onAuthStateChanged(async user=>{
 window.doAuth = doAuth;
 window.toggleAuthMode = toggleAuthMode;
 window.resetPassword = resetPassword;
+window.doSignOut = doSignOut;
