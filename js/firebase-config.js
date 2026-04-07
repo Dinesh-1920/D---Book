@@ -91,3 +91,8 @@ auth.onAuthStateChanged(async user=>{
     document.getElementById('mainApp').classList.add('hidden');
   }
 });
+
+// Make functions global for HTML onclick
+window.doAuth = doAuth;
+window.toggleAuthMode = toggleAuthMode;
+window.resetPassword = resetPassword;
