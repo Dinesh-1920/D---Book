@@ -1171,7 +1171,7 @@ function renderRoom(){
     [...ents].reverse().forEach((e,i)=>{
       const w=BW[i%BW.length],h=118+(i%3)*18; // bigger heights
       const b=document.createElement('div');b.className='bk';b.style.width=w+'px';
-      b.onclick=()=>openPage(e.id);
+      b.onclick=()=>openPage(e.id,true);
       let inn='<div class="bs" style="width:'+w+'px;height:'+h+'px;background:'+e.color+'">';
       inn+='<div class="btt">'+(e.title||'Untitled')+'</div><div class="bdt">'+fmtS(e.ts)+'</div></div>';
       if(e.mood)inn+='<div class="bmd">'+e.mood+'</div>';
@@ -1186,13 +1186,23 @@ function renderRoom(){
 }
 
 // ── PAGE VIEW ──────────────────────────────────────────────
-function openPage(id){
+function openPage(id, editFirst){
   const e=entries.find(x=>x.id===id);if(!e)return;
-  curPageId=id;pageEditMode=false;
+  curPageId=id;
   document.getElementById('pvT').textContent=e.title;
   document.getElementById('pvM').innerHTML=fmtL(e.ts)+(e.mood?'<span class="pvmood" style="margin-left:8px">'+e.mood+'</span>':'');
-  document.getElementById('pvEditBtn').textContent='Edit';
-  renderPageView(e);
+  if(editFirst){
+    pageEditMode=true;
+    document.getElementById('pvEditBtn').textContent='Done';
+    window._editImgs=[...e.images||[]];
+    window._editLayout=getImgLayout(e.id).map(l=>({...l}));
+    window._textLayout=e.textLayout?{...e.textLayout}:{x:56,y:20,w:Math.max(600,window.innerWidth-120)};
+    renderEditCanvas(e);
+  } else {
+    pageEditMode=false;
+    document.getElementById('pvEditBtn').textContent='Edit';
+    renderPageView(e);
+  }
   document.getElementById('pageView').classList.remove('hidden');
 }
 function renderPageView(e){
