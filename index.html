@@ -738,12 +738,20 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 <input type="file" id="editImgPk" accept="image/*" multiple style="display:none" onchange="handleEditPhotos(event)">
 <input type="file" id="newEntryImgPk" accept="image/*" multiple style="display:none" onchange="handleI(event)">
 
-<!-- Firebase SDKs load synchronously before main script -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
+// Load Firebase SDKs dynamically, then run app
+(function(){
+  const sdks=[
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js'
+  ];
+  let loaded=0;
+  function onLoad(){loaded++;if(loaded===sdks.length)initApp();}
+  sdks.forEach(src=>{const s=document.createElement('script');s.src=src;s.onload=onLoad;document.head.appendChild(s);});
+})();
+function initApp(){
 // ── FIREBASE CONFIG ──────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBG3sbDvC60xym08SB1SCpMWz3x-k1Q660",
@@ -1776,7 +1784,7 @@ function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.c
 function fmtS(ts){return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
 function fmtL(ts){return new Date(ts).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
 document.addEventListener('keydown',e=>{if(!document.getElementById('lockScreen').classList.contains('hidden')){if(e.key>='0'&&e.key<='9')kp(e.key);if(e.key==='Backspace')kd();}});
-load();
+} // end initApp — called after Firebase SDKs load
 </script>
 </body>
 </html>
