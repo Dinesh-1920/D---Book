@@ -691,7 +691,6 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
     <div class="shbd">
       <div class="fg"><label class="fl">Room Name</label><input class="fi" id="rName" placeholder="e.g. Work, Family, Ideas..."></div>
       <div class="fg"><label class="fl">Description</label><input class="fi" id="rDesc" placeholder="What's this room for?"></div>
-      <div class="fg"><label class="fl">Icon</label><div class="icon-grid" id="iconGrid"></div></div>
       <div class="fg"><label class="fl">Cover Colour</label><div class="swatch-grid" id="swatchGrid"></div></div>
       <button class="svb" onclick="saveRoom()">Save Room</button>
       <button id="delRoomBtn" class="del-room-btn" style="display:none" onclick="deleteRoom()">Delete Room</button>
@@ -958,20 +957,18 @@ async function savR(){
 auth.onAuthStateChanged(async user=>{
   if(user){
     currentUser=user;
-    // Hide auth, hide lock, show loading
-    document.getElementById('authScreen').classList.add('hidden');
-    document.getElementById('lockScreen').classList.add('hidden');
     // Load user name
     try{
       const uDoc=await db.collection('users').doc(user.uid).get();
       const uName=uDoc.exists?uDoc.data().name:(user.displayName||'Dinesh');
       localStorage.setItem('dlv5_name',uName);
     }catch(e){}
-    // Go straight into app — no PIN needed (Firebase already authenticated)
-    await openApp();
+    // Hide auth screen, show PIN screen for security
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.add('hidden');
+    document.getElementById('lockScreen').classList.remove('hidden');
   } else {
     currentUser=null;
-    // Show auth screen, hide everything else
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('lockScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.add('hidden');
@@ -1318,7 +1315,7 @@ function delE(id){
 }
 
 // ROOMS
-function buildIconGrid(si){const g=document.getElementById('iconGrid');g.innerHTML='';ICONS.forEach(ic=>{const el=document.createElement('div');el.className='ig-btn'+(ic===si?' on':'');el.textContent=ic||'—';el.onclick=()=>{document.querySelectorAll('.ig-btn').forEach(x=>x.classList.remove('on'));el.classList.add('on');selRoomIcon=ic;};g.appendChild(el);});}
+function buildIconGrid(si){selRoomIcon='';} // icon picker removed
 function buildSwatches(si){const g=document.getElementById('swatchGrid');g.innerHTML='';COLOR_THUMBS.forEach((c,i)=>{const el=document.createElement('div');el.className='sw'+(i===si?' on':'');el.style.background=c;el.onclick=()=>{document.querySelectorAll('.sw').forEach(x=>x.classList.remove('on'));el.classList.add('on');selRoomColor=i;};g.appendChild(el);});}
 function openCreateRoom(){editRoomId=null;selRoomIcon='';selRoomColor=0;document.getElementById('roomOvT').textContent='Create Room';document.getElementById('rName').value='';document.getElementById('rDesc').value='';document.getElementById('delRoomBtn').style.display='none';buildIconGrid('');buildSwatches(0);document.getElementById('roomOv').classList.add('op');}
 function openEditRoom(){if(!curRoom)return;editRoomId=curRoom.id;selRoomIcon=curRoom.icon||'';const ci=COLORS.indexOf(curRoom.bg);selRoomColor=ci>=0?ci:0;document.getElementById('roomOvT').textContent='Edit Room';document.getElementById('rName').value=curRoom.name;document.getElementById('rDesc').value=curRoom.desc||'';document.getElementById('delRoomBtn').style.display='block';buildIconGrid(selRoomIcon);buildSwatches(selRoomColor);document.getElementById('roomOv').classList.add('op');}
