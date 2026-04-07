@@ -1628,17 +1628,14 @@ let _dragIdx=-1,_dragOx=0,_dragOy=0,_dragEl=null;
 let _rszIdx=-1,_rszOx=0,_rszOy=0,_rszW0=0,_rszH0=0;
 
 function imgBlockDown(e,idx){
-  if(e.target.classList.contains('rsz')||e.target.closest('.rsz')||e.target.classList.contains('idel'))return;
+  if(e.target.closest('.blk-del')||e.target.closest('.blk-rsz'))return;
   e.stopPropagation();
-  // Select
-  document.querySelectorAll('.note-img-block').forEach((b,i)=>b.classList.toggle('selected',i===idx));
-  // Start drag
-  _dragIdx=idx;_dragEl=document.getElementById('nib_'+idx);
-  const canvas=document.getElementById('imgCanvas');
-  const cr=canvas.getBoundingClientRect();
+  document.querySelectorAll('.free-block').forEach((b,i)=>b.classList.toggle('selected',b.id==='fb_img_'+idx));
+  _dragIdx=idx;_dragEl=document.getElementById('fb_img_'+idx);
+  if(!_dragEl)return;
+  const canvas=document.getElementById('freeCanvas');if(!canvas)return;
   const br=_dragEl.getBoundingClientRect();
-  _dragOx=(e.clientX||e.touches&&e.touches[0].clientX)-br.left;
-  _dragOy=(e.clientY||e.touches&&e.touches[0].clientY)-br.top;
+  _dragOx=e.clientX-br.left;_dragOy=e.clientY-br.top;
   _dragEl.setPointerCapture(e.pointerId);
   _dragEl.addEventListener('pointermove',imgBlockMove);
   _dragEl.addEventListener('pointerup',imgBlockUp);
@@ -1646,13 +1643,11 @@ function imgBlockDown(e,idx){
 function imgBlockMove(e){
   if(_dragIdx<0||!_dragEl)return;
   e.preventDefault();
-  const canvas=document.getElementById('imgCanvas');
-  if(!canvas)return;
+  const canvas=document.getElementById('freeCanvas');if(!canvas)return;
   const cr=canvas.getBoundingClientRect();
-  const x=Math.max(0,(e.clientX)-cr.left-_dragOx);
-  const y=Math.max(0,(e.clientY)-cr.top-_dragOy);
+  const x=Math.max(0,e.clientX-cr.left-_dragOx);
+  const y=Math.max(0,e.clientY-cr.top-_dragOy);
   _dragEl.style.left=x+'px';_dragEl.style.top=y+'px';
-  // Grow canvas if needed
   const needed=y+_dragEl.offsetHeight+20;
   if(needed>canvas.offsetHeight)canvas.style.height=needed+'px';
 }
@@ -1660,15 +1655,12 @@ function imgBlockUp(e){
   if(_dragIdx<0||!_dragEl)return;
   _dragEl.removeEventListener('pointermove',imgBlockMove);
   _dragEl.removeEventListener('pointerup',imgBlockUp);
-  _commitImgLayout();
-  _dragIdx=-1;_dragEl=null;
+  _commitImgLayout();_dragIdx=-1;_dragEl=null;
 }
-
-// ── Resize logic ──
 function rszDown(e,idx){
   e.stopPropagation();e.preventDefault();
   _rszIdx=idx;
-  const el=document.getElementById('nib_'+idx);
+  const el=document.getElementById('fb_img_'+idx);if(!el)return;
   _rszOx=e.clientX;_rszOy=e.clientY;
   _rszW0=el.offsetWidth;_rszH0=el.offsetHeight;
   el.setPointerCapture(e.pointerId);
@@ -1677,28 +1669,30 @@ function rszDown(e,idx){
 }
 function rszMove(e){
   if(_rszIdx<0)return;e.preventDefault();
-  const el=document.getElementById('nib_'+_rszIdx);if(!el)return;
-  const dx=e.clientX-_rszOx,dy=e.clientY-_rszOy;
-  const nw=Math.max(60,_rszW0+dx),nh=Math.max(50,_rszH0+dy);
+  const el=document.getElementById('fb_img_'+_rszIdx);if(!el)return;
+  const nw=Math.max(60,_rszW0+(e.clientX-_rszOx));
+  const nh=Math.max(50,_rszH0+(e.clientY-_rszOy));
   el.style.width=nw+'px';el.style.height=nh+'px';
-  const canvas=document.getElementById('imgCanvas');
+  const canvas=document.getElementById('freeCanvas');
   const needed=el.offsetTop+nh+20;
   if(canvas&&needed>canvas.offsetHeight)canvas.style.height=needed+'px';
 }
 function rszUp(e){
   if(_rszIdx<0)return;
-  const el=document.getElementById('nib_'+_rszIdx);
+  const el=document.getElementById('fb_img_'+_rszIdx);
   if(el){el.removeEventListener('pointermove',rszMove);el.removeEventListener('pointerup',rszUp);}
   _commitImgLayout();_rszIdx=-1;
 }
 function canvasDeselect(e){
-  if(e.target.id==='imgCanvas')document.querySelectorAll('.note-img-block').forEach(b=>b.classList.remove('selected'));
+  if(e.target.id==='freeCanvas')document.querySelectorAll('.free-block').forEach(b=>b.classList.remove('selected'));
+
 }
 function _commitImgLayout(){
   const eid=curPageId;if(!eid||!window._editImgs)return;
   const layout=window._editImgs.map((_,i)=>{
-    const el=document.getElementById('nib_'+i);
-    if(!el)return{x:10,y:10,w:140,h:110};
+    // Try new canvas IDs first, fall back to old
+    const el=document.getElementById('fb_img_'+i)||document.getElementById('nib_'+i);
+    if(!el)return{x:10+i*20,y:220+i*20,w:180,h:140};
     return{x:parseInt(el.style.left)||0,y:parseInt(el.style.top)||0,w:el.offsetWidth,h:el.offsetHeight};
   });
   saveImgLayout(eid,layout);
@@ -1708,8 +1702,9 @@ function delNoteImg(idx){
   window._editImgs.splice(idx,1);
   const eid=curPageId;
   const layout=getImgLayout(eid);layout.splice(idx,1);saveImgLayout(eid,layout);
-  const canvas=document.getElementById('imgCanvas');
-  if(canvas)canvas.outerHTML=buildPhotoEditCanvas(window._editImgs,eid);
+  // Re-render the edit canvas
+  const e=entries.find(x=>x.id===eid);
+  if(e){window._editLayout=layout;renderEditCanvas(e);}
   toast('Image removed');
 }
 
