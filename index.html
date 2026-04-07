@@ -35,6 +35,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 @keyframes su{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes ci{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pp{0%{transform:scale(.92)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
 .lk-logo{width:66px;height:66px;border-radius:20px;background:var(--S2);border:1px solid var(--BR);display:flex;align-items:center;justify-content:center;margin-bottom:16px;animation:fl 5s ease-in-out infinite;font-family:'DM Serif Display',serif;font-size:26px;color:var(--M)}
 .lk-name{font-family:'DM Serif Display',serif;font-size:26px;color:var(--INK);margin-bottom:4px}
 .lk-sub{font-size:11px;color:var(--MUT);letter-spacing:.14em;text-transform:uppercase;margin-bottom:34px}
@@ -407,6 +408,12 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
   </div>
 </div>
 
+<!-- LOADING OVERLAY -->
+<div id="loadingOv" style="display:none;position:fixed;inset:0;background:var(--BG);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <div style="width:36px;height:36px;border:3px solid var(--BR);border-top-color:var(--M);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="font-size:13px;color:var(--MUT);font-family:DM Sans,sans-serif">Loading your diary...</div>
+</div>
+
 <!-- MAIN APP -->
 <div class="screen hidden" id="mainApp">
   <div class="appbody" id="appBody">
@@ -414,8 +421,15 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
     <!-- HOME -->
     <div class="tp on" id="tpDash">
       <div class="pg-head">
-        <div class="pg-title" id="greet">Good evening, Dinesh</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="pg-title" id="greet">Good evening, Dinesh</div>
+        </div>
         <div class="pg-sub" id="hdate"></div>
+        <div style="position:relative;margin-top:12px">
+          <input id="globalSearch" class="rvsi" placeholder="Search all entries..." oninput="doGlobalSearch()" style="padding-left:36px;background:var(--S2)">
+          <svg viewBox="0 0 24 24" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--MUT);fill:none;stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div id="globalSearchResults" style="display:none;background:var(--S1);border:1px solid var(--BR);border-radius:var(--r);margin-top:6px;max-height:280px;overflow-y:auto"></div>
       </div>
       <div class="dw">
         <div class="streak-bar">
@@ -502,6 +516,19 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
             <label style="flex:1;padding:10px;background:var(--S2);color:var(--INK);border:1px solid var(--BR);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center">
               Import Backup<input type="file" accept=".json" style="display:none" onchange="importData(event)">
             </label>
+          </div>
+        </div>
+        <div style="background:var(--S1);border:1px solid var(--BR);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--BR);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:13px;color:var(--INK)">Dark Mode</div>
+            <div onclick="toggleTheme()" id="themeToggle" style="width:44px;height:24px;border-radius:12px;background:var(--M);position:relative;cursor:pointer;flex-shrink:0;transition:background .2s">
+              <div id="themeThumb" style="position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;right:3px;transition:all .2s"></div>
+            </div>
+          </div>
+          <div style="padding:14px 16px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--MUT);margin-bottom:4px">Signed in as</div>
+            <div style="font-size:13px;color:var(--MUTH);margin-bottom:12px;word-break:break-all" id="profEmail">—</div>
+            <button onclick="doSignOut()" style="width:100%;padding:11px;background:transparent;color:#ff6b6b;border:1px solid rgba(255,107,107,.22);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;font-weight:500">Sign Out</button>
           </div>
         </div>
       </div>
@@ -781,10 +808,7 @@ async function resetPassword(){
   try{await auth.sendPasswordResetEmail(email);showAuthErr('Reset email sent — check your inbox');}
   catch(e){showAuthErr('Could not send reset email');}
 }
-function signOut(){
-  if(!confirm('Sign out?'))return;
-  auth.signOut();
-}
+// signOut moved to doSignOut
 
 // ── FIREBASE DATA FUNCTIONS ───────────────────────────────
 async function loadFromCloud(){
@@ -805,15 +829,36 @@ async function loadFromCloud(){
   }
   trackSession();expandRecurring();
 }
+async function uploadImageIfNeeded(dataUrl){
+  // If already a storage URL or empty, return as-is
+  if(!dataUrl||dataUrl.startsWith('https://'))return dataUrl;
+  if(!currentUser)return dataUrl;
+  try{
+    const uid=currentUser.uid;
+    const fname='images/'+uid+'/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.jpg';
+    const ref=storage.ref(fname);
+    await ref.putString(dataUrl,'data_url');
+    return await ref.getDownloadURL();
+  }catch(e){console.error('Image upload error',e);return dataUrl;}
+}
 async function savE(){
   if(!currentUser)return;
   const uid=currentUser.uid;
   const batch=db.batch();
-  entries.forEach(e=>{
+  // Upload images to Storage before saving entry URLs to Firestore
+  for(const e of entries){
+    if(e.images&&e.images.length){
+      const uploaded=[];
+      for(const img of e.images){
+        const url=await uploadImageIfNeeded(img);
+        uploaded.push(url);
+      }
+      e.images=uploaded;
+    }
     const ref=db.collection('users').doc(uid).collection('entries').doc(e.id);
     batch.set(ref,e);
-  });
-  try{await batch.commit();}catch(e){console.error('savE error',e);}
+  }
+  try{await batch.commit();}catch(err){console.error('savE error',err);}
 }
 async function savT(){
   if(!currentUser)return;
@@ -884,11 +929,21 @@ let wbTool='pen',wbColor='#f0eff5',wbDrawing=false,wbCtx=null,currentStroke=null
 
 async function load(){
   await loadFromCloud();
-  try{wbStrokes=JSON.parse(localStorage.getItem('dlv5_wb')||'[]');}catch(e){wbStrokes=[];}
+  // Load whiteboard from Firestore if available, else localStorage
+  if(currentUser){
+    try{
+      const wbDoc=await db.collection('users').doc(currentUser.uid).collection('meta').doc('whiteboard').get();
+      if(wbDoc.exists&&wbDoc.data().strokes){
+        wbStrokes=JSON.parse(wbDoc.data().strokes);
+      }else{
+        wbStrokes=JSON.parse(localStorage.getItem('dlv5_wb')||'[]');
+      }
+    }catch(e){wbStrokes=JSON.parse(localStorage.getItem('dlv5_wb')||'[]');}
+  }else{
+    try{wbStrokes=JSON.parse(localStorage.getItem('dlv5_wb')||'[]');}catch(e){wbStrokes=[];}
+  }
 }
-function savE(){localStorage.setItem('dlv5_e',JSON.stringify(entries));}
-function savT(){localStorage.setItem('dlv5_t',JSON.stringify(tasks));}
-function savR(){localStorage.setItem('dlv5_r',JSON.stringify(rooms));}
+// savE/savT/savR are async Firebase functions defined above
 function trackSession(){const today=new Date().toISOString().slice(0,10);let s=JSON.parse(localStorage.getItem('dlv5_sess')||'{}');s[today]=(s[today]||0)+1;localStorage.setItem('dlv5_sess',JSON.stringify(s));}
 
 function expandRecurring(){
@@ -918,11 +973,13 @@ function dots(){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.cl
 function chkPin(){if(_pin===currentPIN){document.getElementById('lockScreen').classList.add('hidden');openApp();}else{for(let i=0;i<4;i++)document.getElementById('d'+i).classList.add('err');setTimeout(()=>{_pin='';dots();},700);}}
 
 async function openApp(){
-  // Make sure auth and lock are hidden, main is visible
+  // Show loading state
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('lockScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
-  // Load data
+  // Show loading overlay
+  document.getElementById('loadingOv').style.display='flex';
+  // Load data from Firebase
   await load();
   // Set greeting with real name
   const savedName=localStorage.getItem('dlv5_name')||'Dinesh';
@@ -930,8 +987,11 @@ async function openApp(){
   const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   document.getElementById('greet').textContent=g+', '+savedName;
   document.getElementById('hdate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('loadingOv').style.display='none';
   // Build all tabs
   buildDash();buildNBs();buildCal();buildPlanner();
+  // Apply saved theme
+  const thm=localStorage.getItem('dlv5_theme');isDark=thm!=='light';applyTheme();
   // Profile
   const profName=document.getElementById('profNameInput');
   const profDisp=document.getElementById('profNameDisplay');
@@ -1384,12 +1444,28 @@ function setWBTool(t,el){wbTool=t;document.querySelectorAll('[id^=wbt]').forEach
 function setWBColor(el){wbColor=el.dataset.c;document.querySelectorAll('.wb-color').forEach(x=>x.classList.remove('on'));el.classList.add('on');}
 function confirmClearWB(){if(!wbCtx){toast('Open whiteboard first.');return;}if(!confirm('Clear the board?'))return;wbCtx.fillStyle='#fff';wbCtx.fillRect(0,0,wbCtx.canvas.width,wbCtx.canvas.height);wbStrokes=[];localStorage.removeItem('dlv5_wb');toast('Board cleared!');}
 function wbUndo(){if(!wbStrokes.length)return;wbStrokes.pop();const c=document.getElementById('wbCanvas');wbCtx.fillStyle='#fff';wbCtx.fillRect(0,0,c.width,c.height);wbStrokes.forEach(s=>replayStroke(s));}
-function saveWB(){localStorage.setItem('dlv5_wb',JSON.stringify(wbStrokes));const c=document.getElementById('wbCanvas');const a=document.createElement('a');a.download='whiteboard.png';a.href=c.toDataURL();a.click();toast('Saved!');}
+async function saveWB(){
+  if(currentUser){
+    try{
+      await db.collection('users').doc(currentUser.uid).collection('meta').doc('whiteboard').set({strokes:JSON.stringify(wbStrokes),updated:firebase.firestore.FieldValue.serverTimestamp()});
+    }catch(e){console.error('WB save error',e);}
+  }
+  localStorage.setItem('dlv5_wb',JSON.stringify(wbStrokes));
+  const c=document.getElementById('wbCanvas');
+  const a=document.createElement('a');a.download='whiteboard.png';a.href=c.toDataURL();a.click();
+  toast('Whiteboard saved!');
+}
 
 // ── DRAG + RESIZE IMAGE SYSTEM ────────────────────────────
 // imgLayout: [{src, x, y, w, h}] stored per entry
-function getImgLayout(eid){try{return JSON.parse(localStorage.getItem('dlv5_ilay_'+eid)||'[]');}catch(e){return [];}}
-function saveImgLayout(eid,layout){localStorage.setItem('dlv5_ilay_'+eid,JSON.stringify(layout));}
+function getImgLayout(eid){
+  const e=entries.find(x=>x.id===eid);
+  return(e&&e.imgLayout)||[];
+}
+function saveImgLayout(eid,layout){
+  const e=entries.find(x=>x.id===eid);
+  if(e){e.imgLayout=layout;savE();}
+}
 
 // Build READ-ONLY photo display (view mode)
 function buildPhotoViewHTML(imgs,eid){
@@ -1587,13 +1663,8 @@ async function importData(ev){
     }catch(e){toast('Invalid backup file.');}
   };r.readAsText(file);
 }
-function buildProf(){
-  const savedName=localStorage.getItem('dlv5_name')||'Dinesh';
-  document.getElementById('profNameInput').value=savedName;
-  document.getElementById('profNameDisplay').textContent=savedName;
-  document.getElementById('profAvatar').textContent=savedName[0].toUpperCase();
-}
-function saveProfName(){
+// buildProf moved below
+async function saveProfName(){
   const n=document.getElementById('profNameInput').value.trim();
   if(!n){toast('Enter a name');return;}
   localStorage.setItem('dlv5_name',n);
@@ -1601,6 +1672,9 @@ function saveProfName(){
   document.getElementById('profAvatar').textContent=n[0].toUpperCase();
   const h=new Date().getHours();
   document.getElementById('greet').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+', '+n;
+  if(currentUser){
+    try{await db.collection('users').doc(currentUser.uid).update({name:n});}catch(e){}
+  }
   toast('Name updated');
 }
 function saveProfPin(){
@@ -1616,6 +1690,87 @@ function saveProfPin(){
   document.getElementById('profConfPin').value='';
   toast('PIN changed successfully');
 }
+// ── GLOBAL SEARCH ─────────────────────────────────────────
+function doGlobalSearch(){
+  const q=document.getElementById('globalSearch').value.trim().toLowerCase();
+  const res=document.getElementById('globalSearchResults');
+  if(!q){res.style.display='none';return;}
+  const hits=entries.filter(e=>(e.title+' '+e.content).toLowerCase().includes(q)).slice(0,8);
+  if(!hits.length){res.style.display='block';res.innerHTML='<div style="padding:14px;font-size:13px;color:var(--MUT);text-align:center">No results</div>';return;}
+  res.style.display='block';
+  res.innerHTML=hits.map(e=>{
+    const r=rooms.find(x=>x.id===e.room)||{name:''};
+    return'<div onclick="veGlobal(\''+e.id+'\');closeSearch()" style="padding:11px 14px;border-bottom:1px solid var(--BR);cursor:pointer">'
+      +'<div style="font-size:10px;color:var(--MUT);margin-bottom:2px">'+r.name+' · '+fmtS(e.ts)+'</div>'
+      +'<div style="font-family:DM Serif Display,serif;font-size:14px;color:var(--INK)">'+e.title+'</div>'
+      +(e.content?'<div style="font-size:12px;color:var(--MUT);margin-top:2px">'+e.content.slice(0,60)+'…</div>':'')
+      +'</div>';
+  }).join('');
+}
+function closeSearch(){
+  document.getElementById('globalSearch').value='';
+  document.getElementById('globalSearchResults').style.display='none';
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#globalSearch')&&!e.target.closest('#globalSearchResults'))
+    document.getElementById('globalSearchResults').style.display='none';
+});
+
+// ── THEME TOGGLE ──────────────────────────────────────────
+let isDark=true;
+function toggleTheme(){
+  isDark=!isDark;
+  applyTheme();
+  localStorage.setItem('dlv5_theme',isDark?'dark':'light');
+}
+function applyTheme(){
+  const r=document.documentElement.style;
+  const thumb=document.getElementById('themeThumb');
+  const toggle=document.getElementById('themeToggle');
+  if(isDark){
+    r.setProperty('--BG','#0a0a0f');r.setProperty('--S1','#111118');r.setProperty('--S2','#18181f');r.setProperty('--S3','#1e1e28');
+    r.setProperty('--BR','rgba(255,255,255,.07)');r.setProperty('--INK','#f0eff5');r.setProperty('--MUT','#6b6a7a');r.setProperty('--MUTH','#9b9aaa');
+    if(thumb){thumb.style.right='3px';thumb.style.left='auto';}
+    if(toggle)toggle.style.background='var(--M)';
+  }else{
+    r.setProperty('--BG','#f5f5f7');r.setProperty('--S1','#ffffff');r.setProperty('--S2','#f0f0f5');r.setProperty('--S3','#e8e8ef');
+    r.setProperty('--BR','rgba(0,0,0,.08)');r.setProperty('--INK','#1a1a2e');r.setProperty('--MUT','#888898');r.setProperty('--MUTH','#555565');
+    if(thumb){thumb.style.left='3px';thumb.style.right='auto';}
+    if(toggle)toggle.style.background='#ccc';
+  }
+}
+
+// ── SIGN OUT ──────────────────────────────────────────────
+function doSignOut(){
+  if(!confirm('Sign out of Dinesh Life?'))return;
+  auth.signOut().then(()=>{
+    entries=[];tasks=[];rooms=[];
+    document.getElementById('mainApp').classList.add('hidden');
+    document.getElementById('authScreen').classList.remove('hidden');
+    // Reset auth form
+    document.getElementById('authEmail').value='';
+    document.getElementById('authPass').value='';
+    document.getElementById('authErr').style.display='none';
+  });
+}
+
+// ── PROFILE BUILD (updated) ───────────────────────────────
+function buildProf(){
+  const savedName=localStorage.getItem('dlv5_name')||'Dinesh';
+  const ni=document.getElementById('profNameInput');
+  const nd=document.getElementById('profNameDisplay');
+  const av=document.getElementById('profAvatar');
+  const em=document.getElementById('profEmail');
+  if(ni)ni.value=savedName;
+  if(nd)nd.textContent=savedName;
+  if(av)av.textContent=savedName[0].toUpperCase();
+  if(em&&currentUser)em.textContent=currentUser.email||'—';
+  // Apply saved theme
+  const saved=localStorage.getItem('dlv5_theme');
+  isDark=saved!=='light';
+  applyTheme();
+}
+
 ['neOv','roomOv','plOv'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('op');});});
 function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2400);}
 function fmtS(ts){return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
