@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Dinesh Life">
+<meta name="apple-mobile-web-app-title" content="D-Book">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="theme-color" content="#c9184a">
+<meta name="description" content="Your personal private diary - write, plan and remember">
+<meta name="application-name" content="D-Book">
 <title>D—Book</title>
+<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23c9184a'/><text y='.9em' font-size='68' font-family='Georgia,serif' fill='white' x='50%25' text-anchor='middle' dominant-baseline='hanging' dy='10'>D</text></svg>">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23c9184a'/><text y='.9em' font-size='68' font-family='Georgia,serif' fill='white' x='50%25' text-anchor='middle' dominant-baseline='hanging' dy='10'>D</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1914,6 +1917,17 @@ window.onerror=function(msg,src,line){
   return false;
 };
 } // end initApp — called after Firebase SDKs load
+</script>
+
+<script>
+// Register Service Worker for offline support
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js')
+      .then(r=>console.log('SW registered'))
+      .catch(e=>console.log('SW failed:',e));
+  });
+}
 </script>
 </body>
 </html>
