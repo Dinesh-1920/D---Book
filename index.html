@@ -175,13 +175,27 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 /* Apple Notes notebook paper */
 .notes-paper{background:var(--S1);min-height:100%;position:relative}
 .notes-paper-inner{padding:20px 20px 20px 56px;position:relative;min-height:calc(100vh - 200px)}
-/* red margin line */
 .notes-margin{position:absolute;left:44px;top:0;bottom:0;width:1px;background:rgba(201,24,74,.2)}
-/* horizontal ruled lines */
-.notes-lines{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none}
-/* content area */
 .notes-text{font-family:'DM Serif Display',serif;font-size:17px;line-height:2;color:var(--INK);white-space:pre-wrap;min-height:200px;position:relative;z-index:1}
 .notes-text-empty{color:var(--MUT);font-style:italic}
+/* Free canvas editor */
+.free-canvas{position:relative;min-height:calc(100vh - 280px);background:var(--S1);cursor:text}
+.free-block{position:absolute;min-width:60px;min-height:30px;z-index:2;box-sizing:border-box}
+.free-block.text-block{padding:4px 6px;border-radius:6px;border:1.5px solid transparent;cursor:text}
+.free-block.text-block.selected{border-color:var(--M);background:rgba(201,24,74,.04)}
+.free-block.text-block textarea{font-family:'DM Serif Display',serif;font-size:16px;line-height:1.8;color:var(--INK);background:transparent;border:none;outline:none;resize:none;width:100%;min-height:28px;cursor:text;padding:0}
+.free-block.img-block{cursor:grab}
+.free-block.img-block:active{cursor:grabbing}
+.free-block.img-block img{display:block;width:100%;height:100%;object-fit:cover;border-radius:8px;pointer-events:none}
+.free-block .blk-del{position:absolute;top:-10px;left:-10px;width:22px;height:22px;background:#ff4d4d;border-radius:50%;display:none;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--S1);z-index:10;line-height:1}
+.free-block.selected .blk-del{display:flex}
+.free-block .blk-rsz{position:absolute;bottom:-8px;right:-8px;width:20px;height:20px;background:var(--M);border-radius:50%;display:none;cursor:se-resize;border:2px solid var(--S1);z-index:10}
+.free-block.selected .blk-rsz{display:block}
+.free-block .blk-drag{position:absolute;top:-10px;right:-10px;width:20px;height:20px;background:var(--S2);border-radius:50%;display:none;cursor:grab;border:1px solid var(--BR);z-index:10;align-items:center;justify-content:center}
+.free-block.img-block.selected .blk-drag{display:flex}
+.canvas-add-bar{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--BR);background:var(--S1)}
+.cab-btn{padding:7px 14px;border-radius:9px;font-size:12px;font-weight:600;border:1px solid var(--BR);background:var(--S2);color:var(--MUTH);cursor:pointer}
+.cab-btn:active{background:rgba(201,24,74,.1);color:var(--M)}
 /* ── DRAGGABLE RESIZABLE IMAGES ───────────────────────── */
 /* The note canvas in edit mode becomes position:relative */
 .notes-canvas{position:relative;min-height:300px;padding-bottom:80px}
@@ -804,6 +818,9 @@ window.canvasDeselect=function(){if(_appReady)return;console.log("Firebase loadi
 window.delNoteImg=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.imgBlockDown=function(){if(_appReady)return;} ;
 window.rszDown=function(){if(_appReady)return;} ;
+window.textBlockDown=function(){if(_appReady)return;} ;
+window.textRszDown=function(){if(_appReady)return;} ;
+window.autoGrowTA=function(){} ;
 
 
 // Load Firebase SDKs dynamically, then run app
@@ -1180,74 +1197,76 @@ function openPage(id){
 }
 function renderPageView(e){
   const body=document.getElementById('pvBody');
-  // Build ruled lines SVG bg for notebook look
-  const linesCount=60;
-  let linesSVG='<svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" xmlns="http://www.w3.org/2000/svg">';
-  for(let i=0;i<linesCount;i++){
-    const y=20+i*32;
-    linesSVG+='<line x1="0" y1="'+y+'" x2="100%" y2="'+y+'" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
-  }
-  linesSVG+='</svg>';
-
-  const coverImg='';
-  const photos=buildPhotoViewHTML(e.images||[],e.id);
-
-  body.innerHTML=''
-    +'<div class="notes-paper">'
-    +linesHTML()
-    +'<div class="notes-paper-inner">'
-    +'<div class="notes-margin"></div>'
-    +'<div class="notes-text">'+(e.content||'<span class="notes-text-empty">No text yet. Tap Edit to write.</span>')+'</div>'
-    +photos
-    +'</div>'
-    +'<div class="page-actions">'
-    +'<button class="pab del" onclick="delE(\''+e.id+'\')">Delete</button>'
-    +'<button class="pab" onclick="togglePageEdit()">Edit</button>'
-    +'<button class="pab pri" onclick="closePage()">Close</button>'
-    +'</div>'
-    +'</div>';
+  const layout=getImgLayout(e.id);
+  let canvasH=Math.max(500,window.innerHeight-220);
+  if(layout.length)canvasH=Math.max(canvasH,...layout.map((l,i)=>(l.y||0)+(l.h||120)+60));
+  let html='<div class="free-canvas" id="freeCanvas" style="height:'+canvasH+'px">';
+  for(let i=0;i<60;i++)html+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04);pointer-events:none"></div>';
+  html+='<div style="position:absolute;left:44px;top:0;bottom:0;width:1px;background:rgba(201,24,74,.18);pointer-events:none"></div>';
+  const tl=e.textLayout||{x:56,y:20,w:Math.min(500,window.innerWidth-80)};
+  html+='<div class="free-block text-block" id="fb_text" style="left:'+tl.x+'px;top:'+tl.y+'px;width:'+tl.w+'px"><div style="font-family:\'DM Serif Display\',serif;font-size:16px;line-height:1.9;color:var(--INK);white-space:pre-wrap;padding:4px 6px;min-height:40px">'+(e.content||'<span style="color:var(--MUT);font-style:italic">No text yet. Tap Edit to write.</span>')+'</div></div>';
+  if(e.images&&e.images.length){e.images.forEach((src,i)=>{const l=layout[i]||{x:60+i*20,y:200+i*20,w:180,h:140};html+='<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px"><img src="'+src+'"></div>';});}
+  html+='</div>';
+  body.innerHTML=html
+    +'<div class="page-actions"><button class="pab del" onclick="window.delE(\''+e.id+'\')" >Delete</button>'
+    +'<button class="pab" onclick="window.togglePageEdit()">Edit</button>'
+    +'<button class="pab pri" onclick="window.closePage()">Close</button></div>';
 }
-function linesHTML(){
-  let h='<div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">';
-  for(let i=0;i<80;i++){h+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04)"></div>';}
-  h+='</div>';return h;
-}
+function linesHTML(){let h='<div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">';for(let i=0;i<80;i++)h+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04)"></div>';h+='</div>';return h;}
 function togglePageEdit(){
   const e=entries.find(x=>x.id===curPageId);if(!e)return;
-  const body=document.getElementById('pvBody');
   if(!pageEditMode){
-    // Switch to edit mode
-    pageEditMode=true;
-    document.getElementById('pvEditBtn').textContent='Done';
-
-    const coverImg='';
-    const photos=buildPhotoEditCanvas(e.images||[],e.id);
-
-    body.innerHTML=''
-      +'<div class="notes-paper">'
-      +linesHTML()
-      +'<div class="notes-paper-inner">'
-      +'<div class="notes-margin"></div>'
-      +'<input class="notes-edit-title" id="editTitle" value="'+esc(e.title)+'" placeholder="Title">'
-      +'<textarea class="notes-edit-body" id="editBody" placeholder="Write here...">'+esc(e.content)+'</textarea>'
-      +photos
-      +'</div>'
-      +'<div class="notes-edit-bar">'
-      +'<button class="neb-btn" onclick="document.getElementById(\'editImgPk\').click()">+ Photos</button>'
-      +'<button class="neb-btn" style="margin-left:auto" onclick="cancelEdit()">Cancel</button>'
-      +'<button class="neb-btn pri" onclick="saveInlineEdit()">Save</button>'
-      +'<button class="neb-btn del" onclick="delE(\''+e.id+'\')">Delete</button>'
-      +'</div>'
-      +'</div>';
-
-    // Store current edit images
+    pageEditMode=true;document.getElementById('pvEditBtn').textContent='Done';
     window._editImgs=[...e.images||[]];
-    // Set textarea height
-    setTimeout(()=>{const ta=document.getElementById('editBody');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});}},60);
-  } else {
-    saveInlineEdit();
-  }
+    window._editLayout=getImgLayout(e.id).map(l=>({...l}));
+    window._textLayout=e.textLayout?{...e.textLayout}:{x:56,y:20,w:Math.min(500,window.innerWidth-80)};
+    renderEditCanvas(e);
+  }else{saveInlineEdit();}
 }
+function renderEditCanvas(e){
+  const body=document.getElementById('pvBody');
+  const layout=window._editLayout||[];
+  let canvasH=Math.max(600,window.innerHeight-200);
+  if(layout.length)canvasH=Math.max(canvasH,...layout.map((l,i)=>(l.y||0)+(l.h||120)+80));
+  const tw=window._textLayout.w||Math.min(500,window.innerWidth-80);
+  const th=Math.max(200,((e.content||'').split('\n').length+3)*32);
+  let html='<div class="free-canvas" id="freeCanvas" style="height:'+canvasH+'px;min-height:600px" onclick="window.canvasDeselect(event)">';
+  for(let i=0;i<80;i++)html+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04);pointer-events:none"></div>';
+  html+='<div style="position:absolute;left:44px;top:0;bottom:0;width:1px;background:rgba(201,24,74,.18);pointer-events:none"></div>';
+  html+='<div class="free-block text-block" id="fb_text" style="left:'+window._textLayout.x+'px;top:'+window._textLayout.y+'px;width:'+tw+'px" onpointerdown="window.textBlockDown(event)">'
+    +'<textarea class="notes-edit-body" id="editBody" style="height:'+th+'px" placeholder="Write here..." oninput="window.autoGrowTA(this)">'+esc(e.content)+'</textarea>'
+    +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.textRszDown(event)"></div>'
+    +'</div>';
+  (window._editImgs||[]).forEach((src,i)=>{
+    const l=layout[i]||{x:60+i*22,y:220+i*22,w:180,h:140};
+    html+='<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px" onpointerdown="window.imgBlockDown(event,'+i+')">'
+      +'<img src="'+src+'"><div class="img-sel-ring"></div>'
+      +'<div class="blk-del" onclick="event.stopPropagation();window.delNoteImg('+i+')">×</div>'
+      +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.rszDown(event,'+i+')"></div>'
+      +'</div>';
+  });
+  html+='</div>';
+  body.innerHTML=html
+    +'<div class="canvas-add-bar">'
+    +'<label class="cab-btn" for="editImgPk">+ Photo</label>'
+    +'<button class="cab-btn" style="margin-left:auto" onclick="window.cancelEdit()">Cancel</button>'
+    +'<button class="cab-btn" style="background:var(--M);color:#fff;border-color:var(--M)" onclick="window.saveInlineEdit()">Save</button>'
+    +'<button class="cab-btn" style="color:#ff6b6b" onclick="window.delE(\''+e.id+'\')" >Delete</button>'
+    +'</div>';
+  setTimeout(()=>{const ta=document.getElementById('editBody');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}},50);
+}
+function autoGrowTA(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';const canvas=document.getElementById('freeCanvas');const fb=document.getElementById('fb_text');if(canvas&&fb){const needed=parseInt(fb.style.top)+fb.offsetHeight+80;if(needed>canvas.offsetHeight)canvas.style.height=needed+'px';}}
+// Text block drag
+let _tdDragging=false,_tdOx=0,_tdOy=0;
+function textBlockDown(e){if(e.target.tagName==='TEXTAREA')return;const fb=document.getElementById('fb_text');if(!fb)return;_tdDragging=true;const r=fb.getBoundingClientRect();_tdOx=e.clientX-r.left;_tdOy=e.clientY-r.top;fb.setPointerCapture(e.pointerId);fb.addEventListener('pointermove',_textMove);fb.addEventListener('pointerup',_textUp);}
+function _textMove(e){if(!_tdDragging)return;e.preventDefault();const canvas=document.getElementById('freeCanvas');if(!canvas)return;const fb=document.getElementById('fb_text');if(!fb)return;const cr=canvas.getBoundingClientRect();const x=Math.max(0,e.clientX-cr.left-_tdOx);const y=Math.max(0,e.clientY-cr.top-_tdOy);fb.style.left=x+'px';fb.style.top=y+'px';if(window._textLayout)window._textLayout={...window._textLayout,x,y};}
+function _textUp(e){_tdDragging=false;const fb=document.getElementById('fb_text');if(fb){fb.removeEventListener('pointermove',_textMove);fb.removeEventListener('pointerup',_textUp);}}
+// Text resize
+let _trDragging=false,_trOx=0,_trW0=0;
+function textRszDown(e){e.preventDefault();_trDragging=true;const fb=document.getElementById('fb_text');if(!fb)return;_trOx=e.clientX;_trW0=fb.offsetWidth;fb.setPointerCapture(e.pointerId);fb.addEventListener('pointermove',_textRszMove);fb.addEventListener('pointerup',_textRszUp);}
+function _textRszMove(e){if(!_trDragging)return;e.preventDefault();const fb=document.getElementById('fb_text');if(!fb)return;const nw=Math.max(120,_trW0+(e.clientX-_trOx));fb.style.width=nw+'px';if(window._textLayout)window._textLayout={...window._textLayout,w:nw};}
+function _textRszUp(e){_trDragging=false;const fb=document.getElementById('fb_text');if(fb){fb.removeEventListener('pointermove',_textRszMove);fb.removeEventListener('pointerup',_textRszUp);}}
+function canvasDeselect(e){if(e.target.id==='freeCanvas')document.querySelectorAll('.free-block').forEach(b=>b.classList.remove('selected'));}
 function handleEditPhotos(ev){
   const files=Array.from(ev.target.files);
   if(!files.length)return;
@@ -1279,13 +1298,13 @@ function cancelEdit(){
 }
 function saveInlineEdit(){
   const e=entries.find(x=>x.id===curPageId);if(!e)return;
-  _commitImgLayout(); // save drag positions
-  const ti=document.getElementById('editTitle');const bo=document.getElementById('editBody');
-  if(ti)e.title=ti.value.trim()||'Untitled';
+  _commitImgLayout();
+  const bo=document.getElementById('editBody');
   if(bo)e.content=bo.value;
   if(window._editImgs)e.images=window._editImgs;
+  // Save text block position
+  if(window._textLayout)e.textLayout=window._textLayout;
   savE();pageEditMode=false;
-  document.getElementById('pvT').textContent=e.title;
   document.getElementById('pvEditBtn').textContent='Edit';
   renderPageView(e);
   if(curRoom)renderRoom();buildDash();
@@ -1911,6 +1930,10 @@ window.canvasDeselect=canvasDeselect;
 window.delNoteImg=delNoteImg;
 window.imgBlockDown=imgBlockDown;
 window.rszDown=rszDown;
+window.textBlockDown=textBlockDown;
+window.textRszDown=textRszDown;
+window.autoGrowTA=autoGrowTA;
+window.renderEditCanvas=renderEditCanvas;
 window.doGlobalSearch=doGlobalSearch;
 window.importData=importData;
 window.buildHist=buildHist;
