@@ -797,6 +797,7 @@ window.saveInlineEdit=function(){if(_appReady)return;console.log("Firebase loadi
 window.calDayClose=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.calTogT=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.veGlobal=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.editTask=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.togT=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.delT=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.canvasDeselect=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
@@ -1455,11 +1456,32 @@ function renderTL(){
       +'<div class="tlti" style="'+(t.done?'text-decoration:line-through;opacity:.4':'')+'">'+t.title+'</div>'
       +(t.note?'<div class="tlno">'+t.note+'</div>':'')+recLbl
       +'<div class="tlac"><span class="tlb" onclick="togT(\''+t.id+'\')">'+(t.done?'↩ Undo':'✓ Done')+'</span>'
+      +'<span class="tlb" onclick="editTask(\''+t.id+'\')">Edit</span>'
       +'<span class="tlb dl" onclick="delT(\''+t.id+'\')">Delete</span></div></div>';
     tl.appendChild(el);
   });
 }
 function openPNew(){editPid=null;selPT='task';document.getElementById('pTi').value='';document.getElementById('pNo').value='';document.getElementById('pDt').value=planD.toISOString().slice(0,10);document.getElementById('pTm').value='';document.getElementById('plT').textContent='New Task';document.getElementById('pRec').value='none';document.getElementById('recDaysWrap').style.display='none';document.querySelectorAll('#plOv .mb2-text').forEach(m=>{m.classList.remove('on');if(m.dataset.pt==='task')m.classList.add('on');});selRecDays=[];document.getElementById('plOv').classList.add('op');}
+function editTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  editPid=id;selPT=t.type||'task';
+  document.getElementById('pTi').value=t.title||'';
+  document.getElementById('pNo').value=t.note||'';
+  document.getElementById('pDt').value=t.date||'';
+  document.getElementById('pTm').value=t.time||'';
+  document.getElementById('plT').textContent='Edit Task';
+  document.getElementById('pRec').value=t.recurring||'none';
+  selRecDays=t.recDays?[...t.recDays]:[];
+  // Set type button
+  document.querySelectorAll('#plOv .mb2-text').forEach(m=>{m.classList.remove('on');if(m.dataset.pt===selPT)m.classList.add('on');});
+  // Show custom days if needed
+  const recDaysWrap=document.getElementById('recDaysWrap');
+  recDaysWrap.style.display=t.recurring==='custom'?'block':'none';
+  if(t.recurring==='custom'){
+    document.querySelectorAll('.rd').forEach(rd=>{rd.classList.toggle('on',selRecDays.includes(parseInt(rd.dataset.d)));});
+  }
+  document.getElementById('plOv').classList.add('op');
+}
 function closePl(){document.getElementById('plOv').classList.remove('op');}
 function ppt(el){document.querySelectorAll('#plOv .mb2-text').forEach(m=>m.classList.remove('on'));el.classList.add('on');selPT=el.dataset.pt;}
 function toggleRecDays(){const v=document.getElementById('pRec').value;document.getElementById('recDaysWrap').style.display=v==='custom'?'block':'none';selRecDays=[];}
@@ -1881,6 +1903,7 @@ window.saveInlineEdit=saveInlineEdit;
 window.calDayClose=calDayClose;
 window.calTogT=calTogT;
 window.veGlobal=veGlobal;
+window.editTask=editTask;
 window.togT=togT;
 window.delT=delT;
 window.canvasDeselect=canvasDeselect;
