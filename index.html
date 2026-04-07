@@ -957,11 +957,16 @@ async function savR(){
 auth.onAuthStateChanged(async user=>{
   if(user){
     currentUser=user;
-    // Load user name
+    // Load user name and PIN from Firebase
     try{
       const uDoc=await db.collection('users').doc(user.uid).get();
       const uName=uDoc.exists?uDoc.data().name:(user.displayName||'Dinesh');
       localStorage.setItem('dlv5_name',uName);
+      // Sync PIN from Firebase across all devices
+      if(uDoc.exists&&uDoc.data().pin){
+        currentPIN=uDoc.data().pin;
+        localStorage.setItem('dlv5_pin',currentPIN);
+      }
     }catch(e){}
     // Hide auth screen, show PIN screen for security
     document.getElementById('authScreen').classList.add('hidden');
@@ -1750,18 +1755,25 @@ async function saveProfName(){
   }
   toast('Name updated');
 }
-function saveProfPin(){
+async function saveProfPin(){
   const old=document.getElementById('profOldPin').value;
   const nw=document.getElementById('profNewPin').value;
   const cf=document.getElementById('profConfPin').value;
   if(old!==currentPIN){toast('Current PIN is incorrect');return;}
   if(!/^\d{4}$/.test(nw)){toast('New PIN must be 4 digits');return;}
   if(nw!==cf){toast('PINs do not match');return;}
-  currentPIN=nw;localStorage.setItem('dlv5_pin',nw);
+  currentPIN=nw;
+  localStorage.setItem('dlv5_pin',nw);
+  // Save to Firebase so it syncs across all devices
+  if(currentUser){
+    try{
+      await db.collection('users').doc(currentUser.uid).update({pin:nw});
+      toast('PIN changed — synced to all devices');
+    }catch(e){toast('PIN changed locally');}
+  }else{toast('PIN changed successfully');}
   document.getElementById('profOldPin').value='';
   document.getElementById('profNewPin').value='';
   document.getElementById('profConfPin').value='';
-  toast('PIN changed successfully');
 }
 // ── GLOBAL SEARCH ─────────────────────────────────────────
 function doGlobalSearch(){
