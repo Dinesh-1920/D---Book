@@ -1198,12 +1198,12 @@ function openPage(id){
 function renderPageView(e){
   const body=document.getElementById('pvBody');
   const layout=getImgLayout(e.id);
-  let canvasH=Math.max(500,window.innerHeight-220);
+  let canvasH=Math.max(1200,window.innerHeight*2);
   if(layout.length)canvasH=Math.max(canvasH,...layout.map((l,i)=>(l.y||0)+(l.h||120)+60));
   let html='<div class="free-canvas" id="freeCanvas" style="height:'+canvasH+'px">';
   for(let i=0;i<60;i++)html+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04);pointer-events:none"></div>';
   html+='<div style="position:absolute;left:44px;top:0;bottom:0;width:1px;background:rgba(201,24,74,.18);pointer-events:none"></div>';
-  const tl=e.textLayout||{x:56,y:20,w:Math.min(500,window.innerWidth-80)};
+  const tl=e.textLayout||{x:56,y:20,w:Math.max(600,window.innerWidth-120)};
   html+='<div class="free-block text-block" id="fb_text" style="left:'+tl.x+'px;top:'+tl.y+'px;width:'+tl.w+'px"><div style="font-family:\'DM Serif Display\',serif;font-size:16px;line-height:1.9;color:var(--INK);white-space:pre-wrap;padding:4px 6px;min-height:40px">'+(e.content||'<span style="color:var(--MUT);font-style:italic">No text yet. Tap Edit to write.</span>')+'</div></div>';
   if(e.images&&e.images.length){e.images.forEach((src,i)=>{const l=layout[i]||{x:60+i*20,y:200+i*20,w:180,h:140};html+='<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px"><img src="'+src+'"></div>';});}
   html+='</div>';
@@ -1219,22 +1219,22 @@ function togglePageEdit(){
     pageEditMode=true;document.getElementById('pvEditBtn').textContent='Done';
     window._editImgs=[...e.images||[]];
     window._editLayout=getImgLayout(e.id).map(l=>({...l}));
-    window._textLayout=e.textLayout?{...e.textLayout}:{x:56,y:20,w:Math.min(500,window.innerWidth-80)};
+    window._textLayout=e.textLayout?{...e.textLayout}:{x:56,y:20,w:Math.max(600,window.innerWidth-120)};
     renderEditCanvas(e);
   }else{saveInlineEdit();}
 }
 function renderEditCanvas(e){
   const body=document.getElementById('pvBody');
   const layout=window._editLayout||[];
-  let canvasH=Math.max(600,window.innerHeight-200);
+  let canvasH=Math.max(1200,window.innerHeight*2);
   if(layout.length)canvasH=Math.max(canvasH,...layout.map((l,i)=>(l.y||0)+(l.h||120)+80));
-  const tw=window._textLayout.w||Math.min(500,window.innerWidth-80);
+  const tw=window._textLayout.w||Math.max(600,window.innerWidth-120);
   const th=Math.max(200,((e.content||'').split('\n').length+3)*32);
   let html='<div class="free-canvas" id="freeCanvas" style="height:'+canvasH+'px;min-height:600px" onclick="window.canvasDeselect(event)">';
   for(let i=0;i<80;i++)html+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04);pointer-events:none"></div>';
   html+='<div style="position:absolute;left:44px;top:0;bottom:0;width:1px;background:rgba(201,24,74,.18);pointer-events:none"></div>';
   html+='<div class="free-block text-block" id="fb_text" style="left:'+window._textLayout.x+'px;top:'+window._textLayout.y+'px;width:'+tw+'px" onpointerdown="window.textBlockDown(event)">'
-    +'<textarea class="notes-edit-body" id="editBody" style="height:'+th+'px" placeholder="Write here..." oninput="window.autoGrowTA(this)">'+esc(e.content)+'</textarea>'
+    +'<textarea class="notes-edit-body" id="editBody" style="min-height:'+th+'px" placeholder="Write here..." oninput="window.autoGrowTA(this)">'+esc(e.content)+'</textarea>'
     +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.textRszDown(event)"></div>'
     +'</div>';
   (window._editImgs||[]).forEach((src,i)=>{
