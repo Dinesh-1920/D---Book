@@ -1005,7 +1005,9 @@ auth.onAuthStateChanged(async user=>{
       const uDoc=await db.collection('users').doc(user.uid).get();
       const uName=uDoc.exists?uDoc.data().name:(user.displayName||'Dinesh');
       localStorage.setItem('dlv5_name',uName);
-      if(uDoc.exists&&uDoc.data().avatarUrl){
+      if(uDoc.exists&&uDoc.data().profilePic){
+        localStorage.setItem('dlv5_avatar',uDoc.data().profilePic);
+      } else if(uDoc.exists&&uDoc.data().avatarUrl){
         localStorage.setItem('dlv5_avatar',uDoc.data().avatarUrl);
       } else if(user.photoURL){
         localStorage.setItem('dlv5_avatar',user.photoURL);
@@ -1883,17 +1885,20 @@ async function handleProfAvatarUpload(ev){
   if(!file){return;}
   if(!currentUser){toast('Sign in to upload profile photo');return;}
   const uid=currentUser.uid;
-  const ref=storage.ref(`users/${uid}/profile.jpg`);
   toast('Uploading avatar...');
   try{
-    await ref.put(file);
-    const url=await ref.getDownloadURL();
-    await db.collection('users').doc(uid).update({avatarUrl:url});
-    localStorage.setItem('dlv5_avatar',url);
-    updateProfAvatarDisplay(url);
+    const dataUrl = await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(new Error('File read failed'));
+      reader.readAsDataURL(file);
+    });
+    await db.collection('users').doc(uid).update({profilePic:dataUrl});
+    localStorage.setItem('dlv5_avatar',dataUrl);
+    updateProfAvatarDisplay(dataUrl);
     toast('Profile photo updated');
   }catch(e){
-    console.error('avatar upload failed',e);
+    console.error('profile pic save failed',e);
     toast('Avatar upload failed');
   }
   ev.target.value='';
@@ -1904,23 +1909,17 @@ async function loadProfAvatar(){
   let imageUrl=localStorage.getItem('dlv5_avatar');
   if(imageUrl){return imageUrl;}
 
+  const timeoutPromise=new Promise((_, reject)=>setTimeout(()=>reject(new Error('avatar load timeout')),3000));
   try{
-    const uDoc=await db.collection('users').doc(uid).get();
-    if(uDoc.exists&&uDoc.data().avatarUrl){
+    const uDoc=await Promise.race([db.collection('users').doc(uid).get(), timeoutPromise]);
+    if(uDoc.exists&&uDoc.data().profilePic){
+      imageUrl=uDoc.data().profilePic;
+    } else if(uDoc.exists&&uDoc.data().avatarUrl){
       imageUrl=uDoc.data().avatarUrl;
     }
   }catch(e){
-    console.warn('profile avatar firestore read failed',e);
-  }
-
-  if(!imageUrl){
-    const timeoutPromise=new Promise((_, reject)=>setTimeout(()=>reject(new Error('avatar load timeout')),3000));
-    try{
-      imageUrl=await Promise.race([storage.ref(`users/${uid}/profile.jpg`).getDownloadURL(), timeoutPromise]);
-    }catch(e){
-      console.warn('profile avatar storage fetch failed',e);
-      imageUrl=null;
-    }
+    console.warn('profile avatar firestore fetch failed',e);
+    imageUrl=null;
   }
 
   if(imageUrl){
