@@ -163,12 +163,23 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 /* ─── PAGE VIEW (Apple Notes style) ─── */
 #pageView{background:var(--BG)}
 .pvh{background:var(--S1);padding:50px 18px 18px;border-bottom:1px solid var(--BR);flex-shrink:0}
-.pvhrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.pvhrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:16px;flex-wrap:wrap}
+.pv-left{display:flex;align-items:center;gap:16px;min-width:0}
+.pvtitle-wrap{min-width:0}
+.pvtitle{font-family:'DM Serif Display',serif;font-size:22px;color:var(--INK);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.pvmeta{font-size:11px;color:var(--MUT);margin-top:2px;display:flex;align-items:center;gap:8px}
+.pv-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative}
+.pv-actions button{white-space:nowrap}
+.pv-photo-btn,.pv-save-btn{display:none}
+.pv-menu-btn{border:none;background:transparent;color:var(--M);font-size:20px;line-height:1;cursor:pointer;padding:8px;border-radius:12px}
+.pv-menu-btn:hover{background:rgba(255,255,255,.08)}
+.pv-menu{position:absolute;top:100%;right:0;min-width:140px;background:var(--S1);border:1px solid var(--BR);border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.16);padding:6px 0;display:none;z-index:30}
+.pv-menu.open{display:block}
+.pv-menu-item{display:block;width:100%;padding:11px 16px;text-align:left;border:none;background:transparent;color:var(--M);cursor:pointer;font-size:14px}
+.pv-menu-item:hover{background:rgba(201,24,74,.08)}
+.pv-menu-item.del{color:#ff6b6b}
 .pvbk{font-size:13px;color:var(--MUT);cursor:pointer;display:flex;align-items:center;gap:6px}
 .pvbk svg{width:15px;height:15px;stroke:var(--MUT);fill:none;stroke-width:2;stroke-linecap:round}
-.pvedit{font-size:11px;font-weight:600;color:var(--M);cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
-.pvtitle{font-family:'DM Serif Display',serif;font-size:22px;color:var(--INK)}
-.pvmeta{font-size:11px;color:var(--MUT);margin-top:3px;display:flex;align-items:center;gap:8px}
 .pvmood{font-size:15px}
 .pvbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
@@ -193,7 +204,6 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 .free-block.selected .blk-rsz{display:block}
 .free-block .blk-drag{position:absolute;top:-10px;right:-10px;width:20px;height:20px;background:var(--S2);border-radius:50%;display:none;cursor:grab;border:1px solid var(--BR);z-index:10;align-items:center;justify-content:center}
 .free-block.img-block.selected .blk-drag{display:flex}
-.canvas-add-bar{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--BR);background:var(--S1)}
 .cab-btn{padding:7px 14px;border-radius:9px;font-size:12px;font-weight:600;border:1px solid var(--BR);background:var(--S2);color:var(--MUTH);cursor:pointer}
 .cab-btn:active{background:rgba(201,24,74,.1);color:var(--M)}
 /* ── DRAGGABLE RESIZABLE IMAGES ───────────────────────── */
@@ -216,8 +226,6 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 .note-img-readonly img{display:block;object-fit:cover;border-radius:10px}
 /* tap anywhere to deselect */
 .notes-canvas.editing{cursor:default}
-/* page actions */
-.page-actions{padding:14px 16px;border-top:1px solid var(--BR);display:flex;gap:8px;background:var(--S1)}
 .pab{flex:1;padding:11px;border-radius:11px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--BR);background:var(--S2);color:var(--MUTH)}
 .pab.del{color:#ff6b6b;border-color:rgba(255,107,107,.2)}.pab.pri{background:var(--M);color:#fff;border-color:var(--M)}
 
@@ -510,7 +518,11 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
       <div class="pg-head"><div class="pg-title">Profile</div><div class="pg-sub">Your account settings</div></div>
       <div style="padding:16px">
         <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0 20px">
-          <div id="profAvatar" style="width:80px;height:80px;border-radius:50%;background:var(--M);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:32px;color:#fff;margin-bottom:12px">D</div>
+          <div id="profAvatar" onclick="clickProfAvatar()" title="Tap to change avatar" style="width:80px;height:80px;border-radius:50%;background:var(--M);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:32px;color:#fff;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;background-size:cover;background-position:center">
+            <span id="profAvatarText">D</span>
+            <span style="position:absolute;bottom:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 0 0 1px rgba(255,255,255,.12)">📷</span>
+          </div>
+          <input id="profAvatarInput" type="file" accept="image/*" style="display:none" onchange="handleProfAvatarUpload(event)">
           <div id="profNameDisplay" style="font-family:'DM Serif Display',serif;font-size:22px;color:var(--INK)">Dinesh</div>
           <div style="font-size:11px;color:var(--MUT);margin-top:2px">Personal Diary</div>
         </div>
@@ -619,12 +631,23 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 <div class="screen hidden" id="pageView">
   <div class="pvh">
     <div class="pvhrow">
-      <div class="pvbk" onclick="closePage()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Back</div>
-      <div class="pvedit" id="pvEditBtn" onclick="togglePageEdit()">Edit</div>
-    </div>
-    <div id="pvTitleWrap">
-      <div class="pvtitle" id="pvT"></div>
-      <div class="pvmeta" id="pvM"></div>
+      <div class="pv-left">
+        <div class="pvbk" onclick="closePage()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Back</div>
+        <div class="pvtitle-wrap">
+          <div class="pvtitle" id="pvT"></div>
+          <div class="pvmeta" id="pvM"></div>
+        </div>
+      </div>
+      <div class="pv-actions">
+        <button class="pv-menu-btn" id="pvMenuBtn" onclick="togglePageMenu(event)">⋮</button>
+        <div class="pv-menu" id="pvMenu">
+          <button class="pv-menu-item" onclick="togglePageEdit();closePageMenu()">Edit</button>
+          <button class="pv-menu-item del" onclick="delE(curPageId);closePageMenu()">Delete</button>
+          <button class="pv-menu-item" onclick="closePage();closePageMenu()">Close</button>
+        </div>
+        <button class="pab cab-btn pv-photo-btn" id="pvPhotoBtn" onclick="document.getElementById('editImgPk').click()">+ Photo</button>
+        <button class="pab pri pv-save-btn" id="pvSaveBtn" onclick="saveInlineEdit()">Save</button>
+      </div>
     </div>
   </div>
   <div class="pvbody" id="pvBody"></div>
@@ -982,6 +1005,11 @@ auth.onAuthStateChanged(async user=>{
       const uDoc=await db.collection('users').doc(user.uid).get();
       const uName=uDoc.exists?uDoc.data().name:(user.displayName||'Dinesh');
       localStorage.setItem('dlv5_name',uName);
+      if(uDoc.exists&&uDoc.data().avatarUrl){
+        localStorage.setItem('dlv5_avatar',uDoc.data().avatarUrl);
+      } else if(user.photoURL){
+        localStorage.setItem('dlv5_avatar',user.photoURL);
+      }
       // Sync PIN from Firebase across all devices
       if(uDoc.exists&&uDoc.data().pin){
         currentPIN=uDoc.data().pin;
@@ -1082,7 +1110,9 @@ async function openApp(){
   const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   document.getElementById('greet').textContent=g+', '+savedName;
   document.getElementById('hdate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  updateProfAvatarDisplay();
   document.getElementById('loadingOv').style.display='none';
+  loadProfAvatar().then(url=>{ if(url) updateProfAvatarDisplay(url); }).catch(()=>{});
   // Build all tabs — wrapped in try/catch so one crash doesn't freeze whole app
   try{buildDash();}catch(e){console.error('buildDash error:',e);}
   try{buildNBs();}catch(e){console.error('buildNBs error:',e);}
@@ -1193,18 +1223,52 @@ function openPage(id, editFirst){
   document.getElementById('pvM').innerHTML=fmtL(e.ts)+(e.mood?'<span class="pvmood" style="margin-left:8px">'+e.mood+'</span>':'');
   if(editFirst){
     pageEditMode=true;
-    document.getElementById('pvEditBtn').textContent='Done';
     window._editImgs=[...e.images||[]];
     window._editLayout=getImgLayout(e.id).map(l=>({...l}));
     window._textLayout=e.textLayout?{...e.textLayout}:{x:56,y:20,w:Math.max(600,window.innerWidth-120)};
     renderEditCanvas(e);
   } else {
     pageEditMode=false;
-    document.getElementById('pvEditBtn').textContent='Edit';
     renderPageView(e);
   }
+  updatePageHeaderActions();
   document.getElementById('pageView').classList.remove('hidden');
 }
+function updatePageHeaderActions(){
+  const backBtn=document.querySelector('.pvbk');
+  const photoBtn=document.getElementById('pvPhotoBtn');
+  const saveBtn=document.getElementById('pvSaveBtn');
+  const menuBtn=document.getElementById('pvMenuBtn');
+  const menu=document.getElementById('pvMenu');
+  const backSvg='<svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>';
+  if(pageEditMode){
+    if(backBtn){backBtn.innerHTML=backSvg+' Cancel';backBtn.onclick=cancelEdit;}
+    if(photoBtn)photoBtn.style.display='inline-flex';
+    if(saveBtn)saveBtn.style.display='inline-flex';
+    if(menuBtn)menuBtn.style.display='none';
+    if(menu)menu.classList.remove('open');
+  } else {
+    if(backBtn){backBtn.innerHTML=backSvg+' Back';backBtn.onclick=closePage;}
+    if(photoBtn)photoBtn.style.display='none';
+    if(saveBtn)saveBtn.style.display='none';
+    if(menuBtn)menuBtn.style.display='inline-flex';
+    if(menu)menu.classList.remove('open');
+  }
+}
+function togglePageMenu(ev){
+  ev.stopPropagation();
+  const menu=document.getElementById('pvMenu');
+  if(menu)menu.classList.toggle('open');
+}
+function closePageMenu(){
+  const menu=document.getElementById('pvMenu');
+  if(menu)menu.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  const menu=document.getElementById('pvMenu');
+  const btn=document.getElementById('pvMenuBtn');
+  if(menu&&btn&&!menu.contains(e.target)&&!btn.contains(e.target))menu.classList.remove('open');
+});
 function renderPageView(e){
   const body=document.getElementById('pvBody');
   const layout=getImgLayout(e.id);
@@ -1217,21 +1281,19 @@ function renderPageView(e){
   html+='<div class="free-block text-block" id="fb_text" style="left:'+tl.x+'px;top:'+tl.y+'px;width:'+tl.w+'px"><div style="font-family:\'DM Serif Display\',serif;font-size:16px;line-height:1.9;color:var(--INK);white-space:pre-wrap;padding:4px 6px;min-height:40px">'+(e.content||'<span style="color:var(--MUT);font-style:italic">No text yet. Tap Edit to write.</span>')+'</div></div>';
   if(e.images&&e.images.length){e.images.forEach((src,i)=>{const l=layout[i]||{x:60+i*20,y:200+i*20,w:180,h:140};html+='<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px"><img src="'+src+'"></div>';});}
   html+='</div>';
-  body.innerHTML=html
-    +'<div class="page-actions"><button class="pab del" onclick="window.delE(\''+e.id+'\')" >Delete</button>'
-    +'<button class="pab" onclick="window.togglePageEdit()">Edit</button>'
-    +'<button class="pab pri" onclick="window.closePage()">Close</button></div>';
+  body.innerHTML=html;
 }
 function linesHTML(){let h='<div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">';for(let i=0;i<80;i++)h+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04)"></div>';h+='</div>';return h;}
 function togglePageEdit(){
   const e=entries.find(x=>x.id===curPageId);if(!e)return;
   if(!pageEditMode){
-    pageEditMode=true;document.getElementById('pvEditBtn').textContent='Done';
+    pageEditMode=true;
     window._editImgs=[...e.images||[]];
     window._editLayout=getImgLayout(e.id).map(l=>({...l}));
     window._textLayout=e.textLayout?{...e.textLayout}:{x:56,y:20,w:Math.max(600,window.innerWidth-120)};
     renderEditCanvas(e);
   }else{saveInlineEdit();}
+  updatePageHeaderActions();
 }
 function renderEditCanvas(e){
   const body=document.getElementById('pvBody');
@@ -1251,18 +1313,13 @@ function renderEditCanvas(e){
     const l=layout[i]||{x:60+i*22,y:220+i*22,w:180,h:140};
     html+='<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px" onpointerdown="window.imgBlockDown(event,'+i+')">'
       +'<img src="'+src+'"><div class="img-sel-ring"></div>'
+      +'<div class="blk-drag"></div>'
       +'<div class="blk-del" onclick="event.stopPropagation();window.delNoteImg('+i+')">×</div>'
       +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.rszDown(event,'+i+')"></div>'
       +'</div>';
   });
   html+='</div>';
-  body.innerHTML=html
-    +'<div class="canvas-add-bar">'
-    +'<label class="cab-btn" for="editImgPk">+ Photo</label>'
-    +'<button class="cab-btn" style="margin-left:auto" onclick="window.cancelEdit()">Cancel</button>'
-    +'<button class="cab-btn" style="background:var(--M);color:#fff;border-color:var(--M)" onclick="window.saveInlineEdit()">Save</button>'
-    +'<button class="cab-btn" style="color:#ff6b6b" onclick="window.delE(\''+e.id+'\')" >Delete</button>'
-    +'</div>';
+  body.innerHTML=html;
   setTimeout(()=>{const ta=document.getElementById('editBody');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}},50);
 }
 function autoGrowTA(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';const canvas=document.getElementById('freeCanvas');const fb=document.getElementById('fb_text');if(canvas&&fb){const needed=parseInt(fb.style.top)+fb.offsetHeight+80;if(needed>canvas.offsetHeight)canvas.style.height=needed+'px';}}
@@ -1289,11 +1346,16 @@ function handleEditPhotos(ev){
       loaded++;
       if(loaded===files.length){
         const eid=curPageId;
-        const canvas=document.getElementById('imgCanvas');
-        const newCanvas=buildPhotoEditCanvas(window._editImgs,eid);
-        const tmp=document.createElement('div');tmp.innerHTML=newCanvas;
-        if(canvas)canvas.replaceWith(tmp.firstChild);
-        else{const inner=document.querySelector('.notes-paper-inner');if(inner)inner.appendChild(tmp.firstChild);}
+        const e=entries.find(x=>x.id===eid);
+        if(pageEditMode && e){
+          renderEditCanvas(e);
+        } else {
+          const canvas=document.getElementById('imgCanvas');
+          const newCanvas=buildPhotoEditCanvas(window._editImgs,eid);
+          const tmp=document.createElement('div');tmp.innerHTML=newCanvas;
+          if(canvas)canvas.replaceWith(tmp.firstChild);
+          else{const inner=document.querySelector('.notes-paper-inner');if(inner)inner.appendChild(tmp.firstChild);}
+        }
         toast(files.length+' photo'+(files.length>1?'s':'')+' added');
         document.getElementById('editImgPk').value='';
       }
@@ -1304,7 +1366,7 @@ function handleEditPhotos(ev){
 function cancelEdit(){
   pageEditMode=false;
   const e=entries.find(x=>x.id===curPageId);if(e)renderPageView(e);
-  document.getElementById('pvEditBtn').textContent='Edit';
+  updatePageHeaderActions();
 }
 function saveInlineEdit(){
   const e=entries.find(x=>x.id===curPageId);if(!e)return;
@@ -1315,8 +1377,8 @@ function saveInlineEdit(){
   // Save text block position
   if(window._textLayout)e.textLayout=window._textLayout;
   savE();pageEditMode=false;
-  document.getElementById('pvEditBtn').textContent='Edit';
   renderPageView(e);
+  updatePageHeaderActions();
   if(curRoom)renderRoom();buildDash();
   toast('Saved');
 }
@@ -1794,7 +1856,7 @@ async function saveProfName(){
   if(!n){toast('Enter a name');return;}
   localStorage.setItem('dlv5_name',n);
   document.getElementById('profNameDisplay').textContent=n;
-  document.getElementById('profAvatar').textContent=n[0].toUpperCase();
+  updateProfAvatarDisplay();
   const h=new Date().getHours();
   document.getElementById('greet').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+', '+n;
   if(currentUser){
@@ -1802,6 +1864,71 @@ async function saveProfName(){
   }
   toast('Name updated');
 }
+function updateProfAvatarDisplay(url){
+  const av=document.getElementById('profAvatar');
+  const textSpan=document.getElementById('profAvatarText');
+  const name=localStorage.getItem('dlv5_name')||'Dinesh';
+  if(!av||!textSpan)return;
+  const imageUrl=url||localStorage.getItem('dlv5_avatar');
+  if(imageUrl){
+    av.style.backgroundImage='url("'+imageUrl+'")';
+    textSpan.textContent='';
+  } else {
+    av.style.backgroundImage='none';
+    textSpan.textContent=name[0].toUpperCase();
+  }
+}
+async function handleProfAvatarUpload(ev){
+  const file=ev.target.files?.[0];
+  if(!file){return;}
+  if(!currentUser){toast('Sign in to upload profile photo');return;}
+  const uid=currentUser.uid;
+  const ref=storage.ref(`users/${uid}/profile.jpg`);
+  toast('Uploading avatar...');
+  try{
+    await ref.put(file);
+    const url=await ref.getDownloadURL();
+    await db.collection('users').doc(uid).update({avatarUrl:url});
+    localStorage.setItem('dlv5_avatar',url);
+    updateProfAvatarDisplay(url);
+    toast('Profile photo updated');
+  }catch(e){
+    console.error('avatar upload failed',e);
+    toast('Avatar upload failed');
+  }
+  ev.target.value='';
+}
+async function loadProfAvatar(){
+  if(!currentUser)return;
+  const uid=currentUser.uid;
+  let imageUrl=localStorage.getItem('dlv5_avatar');
+  if(imageUrl){return imageUrl;}
+
+  try{
+    const uDoc=await db.collection('users').doc(uid).get();
+    if(uDoc.exists&&uDoc.data().avatarUrl){
+      imageUrl=uDoc.data().avatarUrl;
+    }
+  }catch(e){
+    console.warn('profile avatar firestore read failed',e);
+  }
+
+  if(!imageUrl){
+    const timeoutPromise=new Promise((_, reject)=>setTimeout(()=>reject(new Error('avatar load timeout')),3000));
+    try{
+      imageUrl=await Promise.race([storage.ref(`users/${uid}/profile.jpg`).getDownloadURL(), timeoutPromise]);
+    }catch(e){
+      console.warn('profile avatar storage fetch failed',e);
+      imageUrl=null;
+    }
+  }
+
+  if(imageUrl){
+    localStorage.setItem('dlv5_avatar',imageUrl);
+  }
+  return imageUrl;
+}
+function clickProfAvatar(){document.getElementById('profAvatarInput')?.click();}
 async function saveProfPin(){
   const old=document.getElementById('profOldPin').value;
   const nw=document.getElementById('profNewPin').value;
@@ -1895,6 +2022,8 @@ window.calNav=calNav;
 window.openPNew=openPNew;
 window.saveProfName=saveProfName;
 window.saveProfPin=saveProfPin;
+window.handleProfAvatarUpload=handleProfAvatarUpload;
+window.clickProfAvatar=clickProfAvatar;
 window.exportData=exportData;
 window.toggleTheme=toggleTheme;
 window.doSignOut=doSignOut;
@@ -1912,6 +2041,8 @@ window.setWBColor=setWBColor;
 window.wbUndo=wbUndo;
 window.saveWB=saveWB;
 window.closeNE=closeNE;
+window.togglePageMenu=togglePageMenu;
+window.closePageMenu=closePageMenu;
 window.pm=pm;
 window.pc=pc;
 window.saveE=saveE;
@@ -1959,7 +2090,7 @@ function buildProf(){
   const em=document.getElementById('profEmail');
   if(ni)ni.value=savedName;
   if(nd)nd.textContent=savedName;
-  if(av)av.textContent=savedName[0].toUpperCase();
+  updateProfAvatarDisplay();
   if(em&&currentUser)em.textContent=currentUser.email||'—';
   // Apply saved theme
   const saved=localStorage.getItem('dlv5_theme');
