@@ -1,6 +1,6 @@
 // App: init, tabs, routing, overlays, profile/history
 // Global variables
-let user=null,currentUser=null,entries=[],tasks=[],rooms=[],selMood='',selColor='#c9184a',pImgs=[],editId=null,curRoom=null,curPageId='',pageEditMode=false,selWeekDay=0,calMonth=new Date().getMonth(),calYear=new Date().getFullYear(),editRoomId=null,selRoomIcon='',selRoomColor=0,selRecDays=[],editTaskId=null;
+let entries=[],tasks=[],rooms=[],selMood='',selColor='#c9184a',pImgs=[],editId=null,curRoom=null,curPageId='',pageEditMode=false,selWeekDay=0,calMonth=new Date().getMonth(),calYear=new Date().getFullYear(),editRoomId=null,selRoomIcon='',selRoomColor=0,selRecDays=[],editTaskId=null;
 
 // Global stubs
 const BW=[80,90,100,110,120,130,140,150,160];
@@ -75,19 +75,6 @@ function switchTab(tab){
 }
 
 // Auth screen
-function doAuth(){
-  const em=document.getElementById('authEmail').value.trim(),pw=document.getElementById('authPass').value.trim();
-  if(!em||!pw){toast('Enter email and password');return;}
-  const isSignUp=document.getElementById('authMode').textContent==='Sign Up';
-  (isSignUp?auth.createUserWithEmailAndPassword(auth,em,pw):auth.signInWithEmailAndPassword(auth,em,pw))
-    .then(u=>{currentUser=u.user;toast(isSignUp?'Account created!':'Signed in');})
-    .catch(e=>{toast(e.message);});
-}
-function toggleAuthMode(){
-  const m=document.getElementById('authMode'),f=document.getElementById('authForm');
-  if(m.textContent==='Sign Up'){m.textContent='Sign In';f.innerHTML='<input id="authEmail" type="email" placeholder="Email"><input id="authPass" type="password" placeholder="Password"><button onclick="doAuth()">Sign In</button>';}
-  else{m.textContent='Sign Up';f.innerHTML='<input id="authEmail" type="email" placeholder="Email"><input id="authPass" type="password" placeholder="Password"><button onclick="doAuth()">Sign Up</button>';}
-}
 
 // Lock screen
 let pinAttempt='';const pdots=document.querySelectorAll('.pdot');

@@ -13,6 +13,7 @@ const db = firebase.firestore();
 const storage = firebase.storage();
 
 let currentUser = null;
+let user = null;
 let authMode = 'signin'; // 'signin' or 'signup'
 
 // ── AUTH FUNCTIONS ────────────────────────────────────────
@@ -67,6 +68,7 @@ async function resetPassword(){
 auth.onAuthStateChanged(async user=>{
   if(user){
     currentUser=user;
+    user = user; // set global user
     // Load user name and PIN from Firebase
     try{
       const uDoc=await db.collection('users').doc(user.uid).get();
