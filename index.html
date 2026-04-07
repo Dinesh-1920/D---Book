@@ -50,7 +50,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 
 /* ─── APP SHELL ─── */
 #mainApp{background:var(--BG)}
-.appbody{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+.appbody{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:100px}
 
 /* ─── BOTTOM NAV ─── */
 .bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,15,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--BR);display:flex;justify-content:space-around;padding:10px 0 max(10px,env(safe-area-inset-bottom));z-index:100}
@@ -487,7 +487,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
     </div>
 
     <!-- PROFILE -->
-    <div class="tp" id="tpProf">
+    <div class="tp" id="tpProf" style="padding-bottom:40px">
       <div class="pg-head"><div class="pg-title">Profile</div><div class="pg-sub">Your account settings</div></div>
       <div style="padding:16px">
         <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0 20px">
@@ -739,6 +739,66 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 <input type="file" id="newEntryImgPk" accept="image/*" multiple style="display:none" onchange="handleI(event)">
 
 <script>
+// Global stubs — called by HTML buttons before Firebase loads
+let _appReady=false,_queue=[];
+function _defer(fn){return function(){if(_appReady)fn.apply(this,arguments);else _queue.push({fn,args:Array.from(arguments)});};}
+function _flush(){_queue.forEach(({fn,args})=>fn.apply(null,args));_queue=[];}
+window.doAuth=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.toggleAuthMode=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.resetPassword=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.kp=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.kd=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.calNav=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.openPNew=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.saveProfName=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.saveProfPin=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.exportData=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.toggleTheme=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.doSignOut=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.doGlobalSearch=function(){if(_appReady)return;} ;
+window.importData=function(){if(_appReady)return;} ;
+window.buildHist=function(){if(_appReady)return;} ;
+window.renderRoom=function(){if(_appReady)return;} ;
+window.doWC=function(){if(_appReady)return;} ;
+window.toggleRecDays=function(){if(_appReady)return;} ;
+window.handleEditPhotos=function(){if(_appReady)return;} ;
+window.handleI=function(){if(_appReady)return;} ;
+window.switchTab=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.onFab=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.goBack=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.openEditRoom=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.openNE=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.closePage=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.togglePageEdit=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.closeWB=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.confirmClearWB=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.setWBTool=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.setWBColor=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.wbUndo=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.saveWB=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.closeNE=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.pm=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.pc=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.saveE=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.closeRoomOv=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.saveRoom=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.deleteRoom=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.closePl=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.ppt=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.toggleRD=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.savePl=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.delE=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.cancelEdit=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.saveInlineEdit=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.calDayClose=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.calTogT=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.veGlobal=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.togT=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.delT=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.canvasDeselect=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.delNoteImg=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+
+
 // Load Firebase SDKs dynamically, then run app
 (function(){
   const sdks=[
@@ -749,7 +809,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
   ];
   let loaded=0;
   function onLoad(){loaded++;if(loaded===sdks.length)initApp();}
-  sdks.forEach(src=>{const s=document.createElement('script');s.src=src;s.onload=onLoad;document.head.appendChild(s);});
+  sdks.forEach(src=>{const s=document.createElement('script');s.src=src;s.onload=onLoad;s.onerror=()=>console.error('Failed to load',src);document.head.appendChild(s);});
 })();
 function initApp(){
 // ── FIREBASE CONFIG ──────────────────────────────────────
@@ -996,8 +1056,11 @@ async function openApp(){
   document.getElementById('greet').textContent=g+', '+savedName;
   document.getElementById('hdate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('loadingOv').style.display='none';
-  // Build all tabs
-  buildDash();buildNBs();buildCal();buildPlanner();
+  // Build all tabs — wrapped in try/catch so one crash doesn't freeze whole app
+  try{buildDash();}catch(e){console.error('buildDash error:',e);}
+  try{buildNBs();}catch(e){console.error('buildNBs error:',e);}
+  try{buildCal();}catch(e){console.error('buildCal error:',e);}
+  try{buildPlanner();}catch(e){console.error('buildPlanner error:',e);}
   // Apply saved theme
   const thm=localStorage.getItem('dlv5_theme');isDark=thm!=='light';applyTheme();
   // Profile
@@ -1755,12 +1818,69 @@ function doSignOut(){
     entries=[];tasks=[];rooms=[];
     document.getElementById('mainApp').classList.add('hidden');
     document.getElementById('authScreen').classList.remove('hidden');
-    // Reset auth form
     document.getElementById('authEmail').value='';
     document.getElementById('authPass').value='';
     document.getElementById('authErr').style.display='none';
   });
 }
+
+// Expose ALL functions globally for HTML onclick handlers
+window.doAuth=doAuth;
+window.toggleAuthMode=toggleAuthMode;
+window.resetPassword=resetPassword;
+window.kp=kp;
+window.kd=kd;
+window.calNav=calNav;
+window.openPNew=openPNew;
+window.saveProfName=saveProfName;
+window.saveProfPin=saveProfPin;
+window.exportData=exportData;
+window.toggleTheme=toggleTheme;
+window.doSignOut=doSignOut;
+window.switchTab=switchTab;
+window.onFab=onFab;
+window.goBack=goBack;
+window.openEditRoom=openEditRoom;
+window.openNE=openNE;
+window.closePage=closePage;
+window.togglePageEdit=togglePageEdit;
+window.closeWB=closeWB;
+window.confirmClearWB=confirmClearWB;
+window.setWBTool=setWBTool;
+window.setWBColor=setWBColor;
+window.wbUndo=wbUndo;
+window.saveWB=saveWB;
+window.closeNE=closeNE;
+window.pm=pm;
+window.pc=pc;
+window.saveE=saveE;
+window.closeRoomOv=closeRoomOv;
+window.saveRoom=saveRoom;
+window.deleteRoom=deleteRoom;
+window.closePl=closePl;
+window.ppt=ppt;
+window.toggleRD=toggleRD;
+window.savePl=savePl;
+window.delE=delE;
+window.cancelEdit=cancelEdit;
+window.saveInlineEdit=saveInlineEdit;
+window.calDayClose=calDayClose;
+window.calTogT=calTogT;
+window.veGlobal=veGlobal;
+window.togT=togT;
+window.delT=delT;
+window.canvasDeselect=canvasDeselect;
+window.delNoteImg=delNoteImg;
+window.doGlobalSearch=doGlobalSearch;
+window.importData=importData;
+window.buildHist=buildHist;
+window.renderRoom=renderRoom;
+window.doWC=doWC;
+window.toggleRecDays=toggleRecDays;
+window.handleEditPhotos=handleEditPhotos;
+window.handleI=handleI;
+_appReady=true;_flush();
+
 
 // ── PROFILE BUILD (updated) ───────────────────────────────
 function buildProf(){
@@ -1784,6 +1904,13 @@ function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.c
 function fmtS(ts){return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
 function fmtL(ts){return new Date(ts).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
 document.addEventListener('keydown',e=>{if(!document.getElementById('lockScreen').classList.contains('hidden')){if(e.key>='0'&&e.key<='9')kp(e.key);if(e.key==='Backspace')kd();}});
+// Global error catch — show toast instead of silent freeze
+window.onerror=function(msg,src,line){
+  console.error('App error:',msg,'at line',line);
+  const t=document.getElementById('tst');
+  if(t){t.textContent='Error: '+msg.slice(0,60);t.classList.add('on');setTimeout(()=>t.classList.remove('on'),4000);}
+  return false;
+};
 } // end initApp — called after Firebase SDKs load
 </script>
 </body>
