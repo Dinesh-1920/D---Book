@@ -543,6 +543,8 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
               Import Backup<input type="file" accept=".json" style="display:none" onchange="importData(event)">
             </label>
           </div>
+          <button onclick="clearAllData()" style="width:100%;padding:10px;background:#ff6b6b;color:#fff;border:1px solid #ff6b6b;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:8px">Clear All Data</button>
+          <button onclick="clearCache()" style="width:100%;padding:10px;background:var(--S2);color:var(--INK);border:1px solid var(--BR);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:8px">Clear Cache</button>
         </div>
         <div style="background:var(--S1);border:1px solid var(--BR);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
           <div style="padding:14px 16px;border-bottom:1px solid var(--BR);display:flex;align-items:center;justify-content:space-between">
@@ -1860,6 +1862,45 @@ async function importData(ev){
     }catch(e){toast('Invalid backup file.');}
   };r.readAsText(file);
 }
+async function clearAllData(){
+  if(!confirm('This will permanently delete ALL your entries, tasks, and rooms. Are you sure?'))return;
+  entries=[];tasks=[];rooms=rooms.filter(r=>!r.custom); // keep default rooms
+  localStorage.clear();
+  if(currentUser){
+    try{
+      const uid=currentUser.uid;
+      const batch=db.batch();
+      // Delete all entries
+      const entriesSnap=await db.collection('users').doc(uid).collection('entries').get();
+      entriesSnap.forEach(doc=>batch.delete(doc.ref));
+      // Delete all tasks
+      const tasksSnap=await db.collection('users').doc(uid).collection('tasks').get();
+      tasksSnap.forEach(doc=>batch.delete(doc.ref));
+      // Delete all rooms (custom ones)
+      const roomsSnap=await db.collection('users').doc(uid).collection('rooms').get();
+      roomsSnap.forEach(doc=>batch.delete(doc.ref));
+      await batch.commit();
+      toast('All data cleared from cloud!');
+    }catch(e){toast('Error clearing cloud data');}
+  }
+  buildDash();buildNBs();buildCal();buildPlanner();buildProf();
+  // Reload the page to reset everything
+  setTimeout(()=>location.reload(),1000);
+}
+window.clearAllData = clearAllData;
+async function clearCache(){
+  if('serviceWorker' in navigator){
+    const regs=await navigator.serviceWorker.getRegistrations();
+    regs.forEach(r=>r.unregister());
+  }
+  if('caches' in window){
+    const keys=await caches.keys();
+    await Promise.all(keys.map(k=>caches.delete(k)));
+  }
+  toast('Cache cleared! Refreshing...');
+  setTimeout(()=>location.reload(),1000);
+}
+window.clearCache = clearCache;
 // buildProf moved below
 async function saveProfName(){
   const n=document.getElementById('profNameInput').value.trim();
