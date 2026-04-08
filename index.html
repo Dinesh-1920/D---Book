@@ -1420,7 +1420,9 @@ function saveE(){
 function veGlobal(id){const e=entries.find(x=>x.id===id);if(!e)return;curRoom=rooms.find(r=>r.id===e.room)||rooms[0];openPage(id);}
 function delE(id){
   if(!confirm('Delete this entry?'))return;
-  entries=entries.filter(e=>e.id!==id);savE();
+  entries=entries.filter(e=>e.id!==id);
+  if(currentUser) db.collection('users').doc(currentUser.uid).collection('entries').doc(id).delete();
+  savE();
   document.getElementById('pageView').classList.add('hidden');
   if(curRoom)renderRoom();buildDash();buildCal();toast('Entry deleted.');
 }
@@ -1444,6 +1446,7 @@ function deleteRoom(){
   if(!editRoomId){toast('No room selected.');return;}
   if(!confirm('Delete this room and ALL its entries?'))return;
   entries=entries.filter(e=>e.room!==editRoomId);rooms=rooms.filter(r=>r.id!==editRoomId);
+  if(currentUser) db.collection('users').doc(currentUser.uid).collection('rooms').doc(editRoomId).delete();
   savE();savR();closeRoomOv();document.getElementById('roomView').classList.add('hidden');buildDash();buildNBs();toast('Room deleted.');
 }
 
@@ -1599,7 +1602,7 @@ function savePl(){
   savT();if(rec&&rec!=='none')expandRecurring();closePl();planD=new Date(t.date+'T12:00:00');buildPlanner();buildCal();toast('Added to planner');
 }
 function togT(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;savT();renderTL();buildWS();buildCal();}}
-function delT(id){tasks=tasks.filter(t=>t.id!==id);savT();renderTL();buildWS();buildCal();toast('Task removed.');}
+function delT(id){tasks=tasks.filter(t=>t.id!==id);if(currentUser) db.collection('users').doc(currentUser.uid).collection('tasks').doc(id).delete();savT();renderTL();buildWS();buildCal();toast('Task removed.');}
 
 // PRODUCTIVITY
 function buildProd(){
