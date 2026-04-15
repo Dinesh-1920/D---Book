@@ -64,8 +64,8 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 .bni-ic svg{width:23px;height:23px;stroke:var(--MUT);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s}
 .bni-lb{font-size:10px;font-weight:500;letter-spacing:.02em;color:var(--MUT);transition:color .18s}
 .bni.on .bni-ic svg{stroke:var(--M)}.bni.on .bni-lb{color:var(--M)}
-.bni-dots{stroke:none!important;fill:var(--MUT)}
-.bni.on .bni-dots{fill:var(--M)}
+.bni-more .bni-ic svg{stroke-width:2;fill:var(--MUT);stroke:var(--MUT)}
+.bni-more.on .bni-ic svg{fill:var(--M);stroke:var(--M)}
 /* Mobile: hide overflow tabs, show More button */
 @media(max-width:768px){.bni.bni-extra{display:none}}
 /* Desktop: show all tabs, hide More button */
@@ -333,16 +333,29 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 .pf-btn.p3f.on{background:#4361ee;border-color:#4361ee;color:#fff}
 
 /* ─── HABIT TRACKER ─── */
-.habit-card{background:var(--S1);border:1px solid var(--BR);border-radius:var(--r);padding:14px 15px 12px 18px;margin-bottom:10px;position:relative;overflow:hidden;animation:ci .35s ease both;opacity:0;animation-fill-mode:both}
-.habit-accent{position:absolute;left:0;top:0;bottom:0;width:3px}
-.habit-row{display:flex;align-items:center;gap:12px}
-.habit-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--BR);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .18s;background:var(--S2)}
-.habit-check svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .15s}
-.habit-check.done svg{opacity:1}
-.habit-name{font-size:14px;font-weight:500;color:var(--INK);margin-bottom:6px}
-.habit-week{display:flex;gap:3px;align-items:center}
-.hsq{width:18px;height:18px;border-radius:4px;background:var(--S3);flex-shrink:0;transition:background .15s}
-.habit-streak{font-size:10px;color:var(--MUT);margin-left:6px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+.habit-summary{background:var(--S1);border:1px solid var(--BR);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.habit-summary-title{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--MUT);margin-bottom:6px}
+.habit-summary-count{font-size:18px;font-weight:700;color:var(--INK)}
+.habit-summary-count span{font-size:13px;font-weight:400;color:var(--MUT);margin-left:4px}
+.habit-prog-bar{height:6px;background:var(--S3);border-radius:3px;overflow:hidden;margin-top:8px}
+.habit-prog-fill{height:100%;border-radius:3px;background:var(--M);transition:width .5s ease}
+.habit-card{background:var(--S1);border:1px solid var(--BR);border-radius:14px;margin-bottom:12px;overflow:hidden;animation:ci .35s ease both;opacity:0;animation-fill-mode:both;display:flex;align-items:stretch}
+.habit-accent{width:4px;flex-shrink:0}
+.habit-body{flex:1;padding:14px 12px 12px 14px;min-width:0}
+.habit-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.habit-info{flex:1;min-width:0}
+.habit-name{font-size:14px;font-weight:600;color:var(--INK);margin-bottom:3px}
+.habit-note{font-size:11px;color:var(--MUT);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.habit-cb-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
+.habit-cb{width:40px;height:40px;border-radius:50%;border:2.5px solid var(--BR);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .22s;background:var(--S2)}
+.habit-cb svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:0;transform:scale(.6);transition:opacity .2s,transform .2s}
+.habit-cb.done svg{opacity:1;transform:scale(1)}
+.habit-streak-lbl{font-size:10px;font-weight:700;color:var(--MUT);white-space:nowrap}
+.habit-week-row{display:flex;gap:3px;align-items:flex-end}
+.habit-day{display:flex;flex-direction:column;align-items:center;gap:2px}
+.habit-day-lbl{font-size:7.5px;color:var(--MUT);font-weight:600;text-transform:uppercase;line-height:1}
+.hsq{width:22px;height:22px;border-radius:5px;background:var(--S3);flex-shrink:0;transition:background .18s}
+.hsq.today-empty{border:2px solid var(--BR)}
 .habit-del-btn{font-size:11px;color:#ff6b6b;cursor:pointer;font-weight:500;padding:3px 8px;border-radius:7px;border:1px solid rgba(255,107,107,.2);background:rgba(255,107,107,.06);white-space:nowrap;flex-shrink:0}
 /* ─── OVERDUE TASKS ─── */
 .overdue-section{border-left:3px solid #ff4d4d;background:rgba(255,77,77,.04);border-radius:0 var(--r) var(--r) 0;padding:12px 14px;margin-bottom:14px}
@@ -578,7 +591,8 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
         </div>
         <div class="pg-sub">Build daily consistency</div>
       </div>
-      <div style="padding:16px" id="habitList"></div>
+      <div style="padding:16px 16px 0" id="habitSummary"></div>
+      <div style="padding:8px 16px 16px" id="habitList"></div>
     </div>
 
     <!-- PROFILE -->
@@ -678,7 +692,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
     </div>
     <!-- More button: mobile only -->
     <div class="bni bni-more" id="bniMore" onclick="openMore()">
-      <div class="bni-ic"><svg viewBox="0 0 24 24" class="bni-dots"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div>
+      <div class="bni-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></div>
       <div class="bni-lb">More</div>
     </div>
   </div>
@@ -881,6 +895,9 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
     <div class="shbd">
       <div class="fg"><label class="fl">Habit Name</label>
         <input class="fi" id="habitNameIn" placeholder="e.g. Morning run, Read 20 min…" maxlength="60">
+      </div>
+      <div class="fg"><label class="fl">Note <span style="color:var(--MUT);font-weight:400">(optional)</span></label>
+        <input class="fi" id="habitNoteIn" placeholder="e.g. Exercise 30 mins, Read 10 pages…" maxlength="80">
       </div>
       <div class="fg"><label class="fl">Color</label>
         <div id="habitColorPicker" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"></div>
@@ -1894,10 +1911,10 @@ async function loadHabitLogs(){
 }
 
 function calcStreak(habitId){
+  // Count consecutive days done going back from today (today counts)
   let streak=0;
   const d=new Date();
-  d.setDate(d.getDate()-1); // start from yesterday
-  for(let i=0;i<35;i++){
+  for(let i=0;i<60;i++){
     const ds=d.toISOString().slice(0,10);
     if(habitLogs[ds]&&habitLogs[ds].includes(habitId)){streak++;}
     else break;
@@ -1906,7 +1923,25 @@ function calcStreak(habitId){
   return streak;
 }
 
+const DAY_LABELS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function buildHabitSummary(){
+  const el=document.getElementById('habitSummary');
+  if(!el||!habits.length){if(el)el.innerHTML='';return;}
+  const today=new Date().toISOString().slice(0,10);
+  const todayLog=habitLogs[today]||[];
+  const done=todayLog.filter(id=>habits.find(h=>h.id===id)).length;
+  const total=habits.length;
+  const pct=total?Math.round(done/total*100):0;
+  el.innerHTML='<div class="habit-summary">'
+    +'<div class="habit-summary-title">Today\'s Progress</div>'
+    +'<div class="habit-summary-count">'+done+' of '+total+'<span>habits done</span></div>'
+    +'<div class="habit-prog-bar"><div class="habit-prog-fill" style="width:'+pct+'%"></div></div>'
+    +'</div>';
+}
+
 function buildHabits(){
+  buildHabitSummary();
   const list=document.getElementById('habitList');
   if(!list)return;
   const today=new Date().toISOString().slice(0,10);
@@ -1920,31 +1955,44 @@ function buildHabits(){
     const color=h.color||'#c9184a';
     const done=todayLog.includes(h.id);
     const streak=calcStreak(h.id);
-    // Build last-7-days week dots
-    let weekHtml='<div class="habit-week">';
+    // Last 7 days squares with day labels
+    let weekHtml='<div class="habit-week-row">';
     for(let i=6;i>=0;i--){
       const d=new Date();d.setDate(d.getDate()-i);
       const ds=d.toISOString().slice(0,10);
       const logged=habitLogs[ds]&&habitLogs[ds].includes(h.id);
-      weekHtml+='<div class="hsq" style="'+(logged?'background:'+color+';':'')+'"></div>';
+      const isToday=i===0;
+      let sqStyle=logged?'background:'+color+';':'';
+      let sqClass='hsq'+(isToday&&!logged?' today-empty':'');
+      const lbl=DAY_LABELS[d.getDay()];
+      weekHtml+='<div class="habit-day"><div class="habit-day-lbl">'+lbl+'</div>'
+        +'<div class="'+sqClass+'" style="'+sqStyle+(isToday&&logged?'box-shadow:0 0 0 2px '+color+'40;':'')+'"></div></div>';
     }
     weekHtml+='</div>';
+    const streakHtml=streak>0
+      ?'<div class="habit-streak-lbl" style="color:'+color+'">'+streak+' 🔥</div>'
+      :'<div class="habit-streak-lbl">Start today</div>';
     const card=document.createElement('div');
     card.className='habit-card';
     card.innerHTML=
       '<div class="habit-accent" style="background:'+color+'"></div>'
-      +'<div class="habit-row">'
-        +'<div class="habit-check'+(done?' done':'')+'" onclick="toggleHabitLog(\''+h.id+'\')" style="'+(done?'background:'+color+';border-color:'+color+';':'border-color:'+color+'40;')+'">'
-          +'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
-        +'</div>'
-        +'<div style="flex:1;min-width:0">'
-          +'<div class="habit-name">'+h.name+'</div>'
-          +'<div style="display:flex;align-items:center;gap:0">'
-            +weekHtml
-            +(streak>0?'<div class="habit-streak">🔥 '+streak+'d</div>':'<div class="habit-streak">start today</div>')
+      +'<div class="habit-body">'
+        +'<div class="habit-top">'
+          +'<div class="habit-info">'
+            +'<div class="habit-name">'+h.name+'</div>'
+            +(h.note?'<div class="habit-note">'+h.note+'</div>':'')
+          +'</div>'
+          +'<div class="habit-cb-wrap">'
+            +'<div class="habit-cb'+(done?' done':'')+'" onclick="toggleHabitLog(\''+h.id+'\')" style="'+(done?'background:'+color+';border-color:'+color+';':'border-color:'+color+'60;')+'">'
+              +'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
+            +'</div>'
+            +streakHtml
           +'</div>'
         +'</div>'
-        +'<button class="habit-del-btn" onclick="deleteHabit(\''+h.id+'\')">Delete</button>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+          +weekHtml
+          +'<button class="habit-del-btn" onclick="deleteHabit(\''+h.id+'\')">Delete</button>'
+        +'</div>'
       +'</div>';
     list.appendChild(card);
   });
@@ -1953,7 +2001,9 @@ function buildHabits(){
 function openAddHabit(){
   selHabitColor=HABIT_COLORS[0];
   const inp=document.getElementById('habitNameIn');
+  const noteInp=document.getElementById('habitNoteIn');
   if(inp)inp.value='';
+  if(noteInp)noteInp.value='';
   buildHabitColors();
   document.getElementById('habitOv').classList.add('op');
   setTimeout(()=>{if(inp)inp.focus();},300);
@@ -1980,7 +2030,8 @@ async function saveHabit(){
   if(!name){document.getElementById('habitNameIn').focus();return;}
   if(!currentUser)return;
   const uid=currentUser.uid;
-  const h={id:Date.now().toString()+Math.random().toString(36).slice(2),name,color:selHabitColor,createdAt:Date.now()};
+  const note=(document.getElementById('habitNoteIn').value||'').trim();
+  const h={id:Date.now().toString()+Math.random().toString(36).slice(2),name,note,color:selHabitColor,createdAt:Date.now()};
   habits.push(h);
   try{await db.collection('users').doc(uid).collection('habits').doc(h.id).set(h);}catch(e){console.error('saveHabit error',e);}
   closeAddHabit();
@@ -2013,6 +2064,7 @@ async function deleteHabit(habitId){
 window.setPriority=setPriority;
 window.setPlanFilter=setPlanFilter;
 window.openAddHabit=openAddHabit;
+window.buildHabitSummary=buildHabitSummary;
 window.closeAddHabit=closeAddHabit;
 window.saveHabit=saveHabit;
 window.toggleHabitLog=toggleHabitLog;
