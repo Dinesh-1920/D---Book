@@ -2249,11 +2249,18 @@ function buildHabits(){
       const ds=d.toISOString().slice(0,10);
       const logged=habitLogs[ds]&&habitLogs[ds].includes(h.id);
       const isToday=i===0;
-      let sqStyle=logged?'background:'+color+';':'';
-      let sqClass='hsq'+(isToday&&!logged?' today-empty':'');
+      const isPast=i>0; // i>0 means days before today
       const lbl=DAY_LABELS[d.getDay()];
+      let sqStyle,sqClass='hsq';
+      if(isPast){
+        sqStyle=logged?'background:#22c55e;':'background:#ef4444;';
+      } else if(isToday){
+        sqStyle=logged?'background:#c9184a;':'background:transparent;border:2px solid #c9184a;';
+      } else {
+        sqStyle=''; // future — default grey from .hsq CSS
+      }
       weekHtml+='<div class="habit-day"><div class="habit-day-lbl">'+lbl+'</div>'
-        +'<div class="'+sqClass+'" style="'+sqStyle+(isToday&&logged?'box-shadow:0 0 0 2px '+color+'40;':'')+'"></div></div>';
+        +'<div class="'+sqClass+'" style="'+sqStyle+'"></div></div>';
     }
     weekHtml+='</div>';
     const streakHtml=streak>0
