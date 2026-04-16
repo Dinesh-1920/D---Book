@@ -273,6 +273,17 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
   .pg-paper::before{left:40px}
   .notes-edit-body{font-size:16px}
   .pg-body-text{font-size:16px}
+  /* Mobile: images stack below text in normal flow */
+  #editCanvas .free-block.img-block{
+    position:relative !important;
+    left:0 !important;top:0 !important;
+    width:90% !important;height:auto !important;
+    aspect-ratio:16/9;margin:8px auto !important;
+    display:block;cursor:default;touch-action:auto;
+  }
+  #editCanvas .free-block.img-block .blk-del{display:flex}
+  #editCanvas .free-block.img-block .blk-rsz{display:none}
+  #editCanvas .free-block.img-block .img-sel-ring{display:none}
 }
 
 /* ─── CALENDAR ─── */
@@ -1159,6 +1170,57 @@ async function forceSync(){
   finally{if(btn){btn.classList.remove('spinning');}}
 }
 window.forceSync=forceSync;
+
+let _unsubEntries=null,_unsubTasks=null,_realtimeReady=false;
+function setupRealtimeSync(){
+  if(!currentUser)return;
+  const uid=currentUser.uid;
+  // Unsubscribe previous listeners if any
+  if(_unsubEntries){_unsubEntries();_unsubEntries=null;}
+  if(_unsubTasks){_unsubTasks();_unsubTasks=null;}
+  _unsubEntries=db.collection('users').doc(uid).collection('entries')
+    .onSnapshot({includeMetadataChanges:false},snapshot=>{
+      if(!_realtimeReady)return; // skip initial burst (already loaded via loadFromCloud)
+      let changed=false;
+      snapshot.docChanges().forEach(change=>{
+        const entry={...change.doc.data(),id:change.doc.id};
+        if(change.type==='added'||change.type==='modified'){
+          const idx=entries.findIndex(e=>e.id===entry.id);
+          if(idx!==-1){entries[idx]=entry;}else{entries.push(entry);}
+          changed=true;
+        } else if(change.type==='removed'){
+          entries=entries.filter(e=>e.id!==change.doc.id);
+          changed=true;
+        }
+      });
+      if(changed){
+        try{buildDash();}catch(e){}
+        try{buildNBs();}catch(e){}
+        try{buildCal();}catch(e){}
+        if(curRoom){try{renderRoom();}catch(e){}}
+      }
+    });
+  _unsubTasks=db.collection('users').doc(uid).collection('tasks')
+    .onSnapshot({includeMetadataChanges:false},snapshot=>{
+      if(!_realtimeReady)return;
+      let changed=false;
+      snapshot.docChanges().forEach(change=>{
+        const task={...change.doc.data(),id:change.doc.id};
+        if(change.type==='added'||change.type==='modified'){
+          const idx=tasks.findIndex(t=>t.id===task.id);
+          if(idx!==-1){tasks[idx]=task;}else{tasks.push(task);}
+          changed=true;
+        } else if(change.type==='removed'){
+          tasks=tasks.filter(t=>t.id!==change.doc.id);
+          changed=true;
+        }
+      });
+      if(changed){
+        try{buildPlanner();}catch(e){}
+        try{buildDash();}catch(e){}
+      }
+    });
+}
 async function uploadImageIfNeeded(dataUrl){
   // If already a storage URL or empty, return as-is
   if(!dataUrl||dataUrl.startsWith('https://'))return dataUrl;
@@ -1189,6 +1251,11 @@ async function savE(){
     batch.set(ref,e,{merge:true});
   }
   try{await batch.commit();}catch(err){console.error('savE error',err);}
+}
+async function saveEntry(entry){
+  if(!currentUser)return;
+  try{await db.collection('users').doc(currentUser.uid).collection('entries').doc(entry.id).set(entry,{merge:true});}
+  catch(err){console.error('saveEntry error',err);}
 }
 async function savT(){
   if(!currentUser)return;
@@ -1330,6 +1397,9 @@ async function openApp(){
   try{buildCal();}catch(e){console.error('buildCal error:',e);}
   try{buildPlanner();}catch(e){console.error('buildPlanner error:',e);}
   try{buildHabits();}catch(e){console.error('buildHabits error:',e);}
+  // Set up real-time listeners AFTER initial load so snapshot bursts are skipped
+  setupRealtimeSync();
+  setTimeout(()=>{_realtimeReady=true;},1500);
   // Apply saved theme
   const thm=localStorage.getItem('dlv5_theme');isDark=thm!=='light';applyTheme();
   // Profile
@@ -1695,7 +1765,8 @@ function silentSave(){
   if(bo)e.content=bo.value;
   const ti=document.getElementById('pvTitleEdit');
   if(ti&&ti.value.trim())e.title=ti.value.trim();
-  savE();
+  // Save only this entry (fast), not the whole batch
+  saveEntry(e);
   const asEl=document.getElementById('pvAutoSave');
   if(asEl){asEl.textContent='Saved ✓';asEl.className='pg-as saved';setTimeout(()=>{if(asEl){asEl.textContent='';asEl.className='pg-as';}},1500);}
 }
