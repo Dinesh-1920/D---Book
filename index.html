@@ -1854,7 +1854,7 @@ function buildWS(){
   let todayEl=null;
   for(let i=-BEFORE;i<=AFTER;i++){
     const d=new Date(today);d.setDate(today.getDate()+i);
-    const ds=d.toISOString().slice(0,10);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const isOn=d.toDateString()===planD.toDateString();
     const isToday=i===0;
     const haT=tasks.some(t=>t.date===ds&&!t.done);
@@ -1875,7 +1875,7 @@ function buildWS(){
 }
 function renderTL(){
   const tl=document.getElementById('tlList');tl.innerHTML='';
-  const ds=planD.toISOString().slice(0,10);
+  const ds=planD.getFullYear()+'-'+String(planD.getMonth()+1).padStart(2,'0')+'-'+String(planD.getDate()).padStart(2,'0');
   let dt=[...tasks].filter(t=>t.date===ds&&!(t.skipDates&&t.skipDates.includes(ds)));
   if(planFilter!=='all')dt=dt.filter(t=>(t.priority||'p2')===planFilter);
   dt.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
@@ -1895,7 +1895,7 @@ function renderTL(){
     tl.appendChild(el);
   });
 }
-function openPNew(){editPid=null;selPT='task';selPriority='p2';document.getElementById('pTi').value='';document.getElementById('pNo').value='';document.getElementById('pDt').value=planD.toISOString().slice(0,10);document.getElementById('pTm').value='';document.getElementById('plT').textContent='New Task';document.getElementById('pRec').value='none';document.getElementById('recDaysWrap').style.display='none';document.querySelectorAll('#plOv .mb2-text').forEach(m=>{m.classList.remove('on');if(m.dataset.pt==='task')m.classList.add('on');});document.querySelectorAll('.pri-btn').forEach(b=>{b.classList.remove('on');if(b.dataset.pr==='p2')b.classList.add('on');});selRecDays=[];document.getElementById('plOv').classList.add('op');}
+function openPNew(){editPid=null;selPT='task';selPriority='p2';document.getElementById('pTi').value='';document.getElementById('pNo').value='';const pd=planD;document.getElementById('pDt').value=pd.getFullYear()+'-'+String(pd.getMonth()+1).padStart(2,'0')+'-'+String(pd.getDate()).padStart(2,'0');document.getElementById('pTm').value='';document.getElementById('plT').textContent='New Task';document.getElementById('pRec').value='none';document.getElementById('recDaysWrap').style.display='none';document.querySelectorAll('#plOv .mb2-text').forEach(m=>{m.classList.remove('on');if(m.dataset.pt==='task')m.classList.add('on');});document.querySelectorAll('.pri-btn').forEach(b=>{b.classList.remove('on');if(b.dataset.pr==='p2')b.classList.add('on');});selRecDays=[];document.querySelector('#plOv .svb').textContent='Add to Planner';document.getElementById('plOv').classList.add('op');}
 function editTask(id){
   const t=tasks.find(x=>x.id===id);if(!t)return;
   editPid=id;selPT=t.type||'task';
@@ -1904,6 +1904,7 @@ function editTask(id){
   document.getElementById('pDt').value=t.date||'';
   document.getElementById('pTm').value=t.time||'';
   document.getElementById('plT').textContent='Edit Task';
+  document.querySelector('#plOv .svb').textContent='Save Changes';
   document.getElementById('pRec').value=t.recurring||'none';
   selRecDays=t.recDays?[...t.recDays]:[];
   selPriority=t.priority||'p2';
@@ -1926,9 +1927,10 @@ function toggleRD(el){const d=parseInt(el.dataset.d);el.classList.toggle('on');i
 function savePl(){
   const ti=document.getElementById('pTi').value.trim();if(!ti){toast('Add a title!');return;}
   const rec=document.getElementById('pRec').value;
-  const t={id:editPid||Date.now().toString(),title:ti,note:document.getElementById('pNo').value.trim(),date:document.getElementById('pDt').value,time:document.getElementById('pTm').value,type:selPT,done:false,priority:selPriority,recurring:rec,recDays:rec==='custom'?[...selRecDays]:[]};
-  if(editPid){const i=tasks.findIndex(x=>x.id===editPid);if(i!==-1)tasks[i]=t;}else tasks.push(t);
-  savT();if(rec&&rec!=='none')expandRecurring();closePl();planD=new Date(t.date+'T12:00:00');buildPlanner();buildCal();toast('Added to planner');
+  const existing=editPid?tasks.find(x=>x.id===editPid):null;
+  const t={id:editPid||Date.now().toString(),title:ti,note:document.getElementById('pNo').value.trim(),date:document.getElementById('pDt').value,time:document.getElementById('pTm').value,type:selPT,done:existing?existing.done:false,priority:selPriority,recurring:rec,recDays:rec==='custom'?[...selRecDays]:[]};
+  if(editPid){const i=tasks.findIndex(x=>x.id===editPid);if(i!==-1)tasks[i]=t;}else{tasks.push(t);if(rec&&rec!=='none')expandRecurring();}
+  savT();closePl();planD=new Date(t.date+'T00:00:00');buildPlanner();buildCal();toast(editPid?'Task updated':'Added to planner');
 }
 function togT(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;savT();renderOverdue();renderTL();buildWS();buildCal();}}
 
