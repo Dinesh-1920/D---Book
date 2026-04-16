@@ -2252,12 +2252,12 @@ function buildHabits(){
       const isPast=i>0; // i>0 means days before today
       const lbl=DAY_LABELS[d.getDay()];
       let sqStyle,sqClass='hsq';
-      if(isPast){
-        sqStyle=logged?'background:#22c55e;':'background:#ef4444;';
-      } else if(isToday){
-        sqStyle=logged?'background:#c9184a;':'background:transparent;border:2px solid #c9184a;';
+      if(logged){
+        sqStyle='background:#22c55e;'; // done = green
+      } else if(isPast){
+        sqStyle='background:#ef4444;'; // past, not done = red
       } else {
-        sqStyle=''; // future — default grey from .hsq CSS
+        sqStyle=''; // today (not yet done) or future = grey
       }
       weekHtml+='<div class="habit-day"><div class="habit-day-lbl">'+lbl+'</div>'
         +'<div class="'+sqClass+'" style="'+sqStyle+'"></div></div>';
