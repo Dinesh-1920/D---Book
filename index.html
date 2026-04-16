@@ -1304,6 +1304,15 @@ auth.onAuthStateChanged(async user=>{
   }
 });
 
+// Refresh Firebase auth token every 30 min to prevent silent expiry
+setInterval(async()=>{try{if(currentUser)await currentUser.getIdToken(true);}catch(e){console.warn('Token refresh failed',e);}},30*60*1000);
+// Refresh token when app comes back from background
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState==='visible'&&currentUser){
+    try{await currentUser.getIdToken(true);}catch(e){console.warn('Visibility token refresh failed',e);}
+  }
+});
+
 const PIN='1920';
 let currentPIN=localStorage.getItem('dlv5_pin')||PIN;
 const DEFAULT_ROOMS=[
@@ -1373,42 +1382,77 @@ function expandRecurring(){
 function kp(k){if(_pin.length>=4)return;_pin+=k;dots();if(_pin.length===4)setTimeout(chkPin,180);}
 function kd(){if(_pin.length){_pin=_pin.slice(0,-1);dots();}}
 function dots(){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('err');d.classList.toggle('on',i<_pin.length);}}
-function chkPin(){if(_pin===currentPIN){document.getElementById('lockScreen').classList.add('hidden');openApp();}else{for(let i=0;i<4;i++)document.getElementById('d'+i).classList.add('err');setTimeout(()=>{_pin='';dots();},700);}}
+function chkPin(){
+  if(_pin===currentPIN){
+    // Guard: if auth token expired, re-validate before opening
+    if(!currentUser){
+      const unsub=auth.onAuthStateChanged(user=>{
+        unsub();
+        if(user){currentUser=user;openApp();}
+        else{document.getElementById('lockScreen').classList.add('hidden');document.getElementById('authScreen').classList.remove('hidden');}
+      });
+      return;
+    }
+    openApp();
+  }else{
+    for(let i=0;i<4;i++)document.getElementById('d'+i).classList.add('err');
+    setTimeout(()=>{_pin='';dots();},700);
+  }
+}
 
-async function openApp(){
-  // Show loading state
-  document.getElementById('authScreen').classList.add('hidden');
-  document.getElementById('lockScreen').classList.add('hidden');
-  document.getElementById('mainApp').classList.remove('hidden');
-  // Show loading overlay
-  document.getElementById('loadingOv').style.display='flex';
-  // Load data from Firebase
-  await load();
-  // Set greeting with real name
+function _loadCache(){
+  try{
+    const c=JSON.parse(localStorage.getItem('dlv5_cache')||'null');
+    if(c){
+      if(c.entries)entries=c.entries;
+      if(c.tasks)tasks=c.tasks;
+      if(c.rooms&&c.rooms.length)rooms=c.rooms;
+    }
+  }catch(e){}
+}
+function _saveCache(){
+  try{localStorage.setItem('dlv5_cache',JSON.stringify({entries,tasks,rooms}));}catch(e){}
+}
+function _buildAllTabs(){
+  try{buildDash();}catch(e){console.error('buildDash:',e);}
+  try{buildNBs();}catch(e){console.error('buildNBs:',e);}
+  try{buildCal();}catch(e){console.error('buildCal:',e);}
+  try{buildPlanner();}catch(e){console.error('buildPlanner:',e);}
+  try{buildHabits();}catch(e){console.error('buildHabits:',e);}
+}
+function _setGreeting(){
   const savedName=localStorage.getItem('dlv5_name')||'Dinesh';
   const h=new Date().getHours();
   const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   document.getElementById('greet').textContent=g+', '+savedName;
   document.getElementById('hdate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('loadingOv').style.display='none';
-  // Build all tabs — wrapped in try/catch so one crash doesn't freeze whole app
-  try{buildDash();}catch(e){console.error('buildDash error:',e);}
-  try{buildNBs();}catch(e){console.error('buildNBs error:',e);}
-  try{buildCal();}catch(e){console.error('buildCal error:',e);}
-  try{buildPlanner();}catch(e){console.error('buildPlanner error:',e);}
-  try{buildHabits();}catch(e){console.error('buildHabits error:',e);}
-  // Set up real-time listeners AFTER initial load so snapshot bursts are skipped
-  setupRealtimeSync();
-  setTimeout(()=>{_realtimeReady=true;},1500);
-  // Apply saved theme
-  const thm=localStorage.getItem('dlv5_theme');isDark=thm!=='light';applyTheme();
-  // Profile
   const profName=document.getElementById('profNameInput');
   const profDisp=document.getElementById('profNameDisplay');
   const profAvt=document.getElementById('profAvatar');
   if(profName)profName.value=savedName;
   if(profDisp)profDisp.textContent=savedName;
   if(profAvt)profAvt.textContent=savedName[0].toUpperCase();
+}
+async function openApp(){
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('lockScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('loadingOv').style.display='none';
+  // Apply saved theme immediately
+  const thm=localStorage.getItem('dlv5_theme');isDark=thm!=='light';applyTheme();
+  _setGreeting();
+  // Load cached data for instant display
+  _loadCache();
+  expandRecurring();
+  _buildAllTabs();
+  // Set up real-time listeners
+  setupRealtimeSync();
+  // Fetch fresh data from Firestore in background
+  load().then(()=>{
+    _saveCache();
+    _buildAllTabs();
+    setTimeout(()=>{_realtimeReady=true;},500);
+  }).catch(e=>console.error('Background load error:',e));
 }
 function openMore(){document.getElementById('moreOv').classList.add('op');}
 function closeMore(){document.getElementById('moreOv').classList.remove('op');}
