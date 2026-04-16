@@ -262,6 +262,12 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 .pg-as{font-size:11px;min-width:60px;text-align:right;transition:color .3s}
 .pg-as.saving{color:var(--MUTH)}
 .pg-as.saved{color:#06d6a0}
+/* ─── SYNC BUTTON ─── */
+.sync-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--BR);background:var(--S2);color:var(--MUTH);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color .2s,transform .4s}
+.sync-btn svg{width:16px;height:16px}
+.sync-btn:hover{color:var(--M)}
+.sync-btn.spinning svg{animation:spinAnim .7s linear infinite}
+@keyframes spinAnim{to{transform:rotate(360deg)}}
 @media(max-width:768px){
   .pg-paper{padding:16px 16px 100px 54px}
   .pg-paper::before{left:40px}
@@ -537,6 +543,9 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
       <div class="pg-head">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div class="pg-title" id="greet">Good evening, Dinesh</div>
+          <button id="syncBtn" class="sync-btn" onclick="window.forceSync()" title="Sync latest data">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          </button>
         </div>
         <div class="pg-sub" id="hdate"></div>
         <div style="position:relative;margin-top:12px">
@@ -991,6 +1000,7 @@ window.setWBTool=function(){if(_appReady)return;console.log("Firebase loading, p
 window.setWBColor=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.wbUndo=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.saveWB=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.forceSync=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.closeNE=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.pm=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.pc=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
@@ -1121,10 +1131,10 @@ async function loadFromCloud(){
   const uid=currentUser.uid;
   try{
     const [eSnap,tSnap,rSnap,hSnap]=await Promise.all([
-      db.collection('users').doc(uid).collection('entries').orderBy('ts','desc').get(),
-      db.collection('users').doc(uid).collection('tasks').get(),
-      db.collection('users').doc(uid).collection('rooms').get(),
-      db.collection('users').doc(uid).collection('habits').get()
+      db.collection('users').doc(uid).collection('entries').orderBy('ts','desc').get({source:'server'}),
+      db.collection('users').doc(uid).collection('tasks').get({source:'server'}),
+      db.collection('users').doc(uid).collection('rooms').get({source:'server'}),
+      db.collection('users').doc(uid).collection('habits').get({source:'server'})
     ]);
     entries=eSnap.docs.map(d=>({...d.data(),id:d.id}));
     tasks=tSnap.docs.map(d=>({...d.data(),id:d.id}));
@@ -1137,6 +1147,18 @@ async function loadFromCloud(){
   }
   trackSession();expandRecurring();
 }
+async function forceSync(){
+  const btn=document.getElementById('syncBtn');
+  if(btn)btn.classList.add('spinning');
+  try{
+    await loadFromCloud();
+    buildDash();buildNBs();buildCal();buildPlanner();buildProf();
+    if(curRoom){const r=rooms.find(x=>x.id===curRoom.id);if(r){curRoom=r;renderRoom();}}
+    toast('Synced');
+  }catch(e){console.error('forceSync error',e);toast('Sync failed');}
+  finally{if(btn){btn.classList.remove('spinning');}}
+}
+window.forceSync=forceSync;
 async function uploadImageIfNeeded(dataUrl){
   // If already a storage URL or empty, return as-is
   if(!dataUrl||dataUrl.startsWith('https://'))return dataUrl;
@@ -1164,7 +1186,7 @@ async function savE(){
       e.images=uploaded;
     }
     const ref=db.collection('users').doc(uid).collection('entries').doc(e.id);
-    batch.set(ref,e);
+    batch.set(ref,e,{merge:true});
   }
   try{await batch.commit();}catch(err){console.error('savE error',err);}
 }
@@ -1497,14 +1519,24 @@ function togglePageEdit(){
 function renderEditCanvas(e){
   const body=document.getElementById('pvBody');
   const wc=pgWordCount(e.content||'');
-  let imgHtml='';
+  const layout=window._editLayout||[];
+  let imgSection='';
   if((window._editImgs||[]).length){
-    imgHtml='<div class="pg-img-grid">'+(window._editImgs||[]).map((src,i)=>'<div class="pg-img-item"><img src="'+src+'"><div class="blk-del" onclick="event.stopPropagation();window.delNoteImg('+i+')">×</div></div>').join('')+'</div>';
+    const canvasH=Math.max(180,...(window._editImgs||[]).map((_,i)=>{const l=layout[i];return ((l&&l.y)||10+i*22)+((l&&l.h)||120);}))+30;
+    imgSection='<div id="freeCanvas" style="position:relative;height:'+canvasH+'px;min-height:'+canvasH+'px;margin-top:8px">'
+      +(window._editImgs||[]).map((src,i)=>{
+        const l=layout[i]||{x:10+i*22,y:10+i*22,w:160,h:120};
+        return '<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px" onpointerdown="window.imgBlockDown(event,'+i+')">'
+          +'<img src="'+src+'"><div class="img-sel-ring"></div>'
+          +'<div class="blk-del" onclick="event.stopPropagation();window.delNoteImg('+i+')">×</div>'
+          +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.rszDown(event,'+i+')"></div>'
+          +'</div>';
+      }).join('')+'</div>';
   }
   body.innerHTML='<div class="pg-paper">'
     +'<textarea class="notes-edit-body" id="editBody" placeholder="Write here..." oninput="window.onEditInput(this)">'+esc(e.content)+'</textarea>'
     +'<div class="pg-wc" id="pgWC">'+wc+' word'+(wc!==1?'s':'')+'</div>'
-    +imgHtml+'</div>';
+    +imgSection+'</div>';
   setTimeout(()=>{const ta=document.getElementById('editBody');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';ta.focus();}},80);
 }
 function autoGrowTA(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';const canvas=document.getElementById('freeCanvas');const fb=document.getElementById('fb_text');if(canvas&&fb){const needed=parseInt(fb.style.top)+fb.offsetHeight+80;if(needed>canvas.offsetHeight)canvas.style.height=needed+'px';}}
