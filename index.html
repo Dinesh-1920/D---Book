@@ -866,6 +866,19 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
   </div>
 </div>
 
+<!-- DELETE RECURRING TASK SHEET -->
+<div class="ov" id="delRecOv">
+  <div class="sh"><div class="shh"></div>
+    <div class="shbd" style="padding-top:8px">
+      <div id="delRecTitle" style="font-family:'DM Serif Display',serif;font-size:17px;color:var(--INK);margin-bottom:4px;text-align:center"></div>
+      <div style="font-size:12px;color:var(--MUT);text-align:center;margin-bottom:20px">This is a recurring task</div>
+      <button onclick="delOnlyToday()" style="width:100%;padding:13px;background:var(--S2);color:var(--INK);border:1px solid var(--BR);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:10px">Delete only today</button>
+      <button onclick="delAllRecurring()" style="width:100%;padding:13px;background:#c0392b;color:#fff;border:none;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:10px">Delete all recurring</button>
+      <button onclick="closeDelRecOv()" style="width:100%;padding:13px;background:transparent;color:var(--MUT);border:none;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- MORE SHEET -->
 <div class="ov" id="moreOv">
   <div class="sh">
@@ -983,6 +996,9 @@ window.veGlobal=function(){if(_appReady)return;console.log("Firebase loading, pl
 window.editTask=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.togT=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.delT=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
+window.closeDelRecOv=function(){if(_appReady)return;} ;
+window.delOnlyToday=function(){if(_appReady)return;} ;
+window.delAllRecurring=function(){if(_appReady)return;} ;
 window.canvasDeselect=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.delNoteImg=function(){if(_appReady)return;console.log("Firebase loading, please wait...");} ;
 window.imgBlockDown=function(){if(_appReady)return;} ;
@@ -1832,13 +1848,36 @@ function renderOverdue(){
 }
 function buildWS(){
   const strip=document.getElementById('wstrip');strip.innerHTML='';
-  const days=['Su','Mo','Tu','We','Th','Fr','Sa'];
-  for(let i=-2;i<=5;i++){const d=new Date(planD);d.setDate(planD.getDate()+i);const isOn=d.toDateString()===planD.toDateString();const haT=tasks.some(t=>t.date===d.toISOString().slice(0,10));const el=document.createElement('div');el.className='wd'+(isOn?' on':'');el.innerHTML='<div class="wdd">'+days[d.getDay()]+'</div><div class="wdn">'+d.getDate()+'</div>'+(haT?'<div class="wddt"></div>':'');el.onclick=()=>{planD=new Date(d);buildPlanner();};strip.appendChild(el);}
+  const dayNames=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const today=new Date();today.setHours(0,0,0,0);
+  // 30 days: 7 before today + today + 22 after
+  const BEFORE=7,AFTER=22;
+  let todayEl=null;
+  for(let i=-BEFORE;i<=AFTER;i++){
+    const d=new Date(today);d.setDate(today.getDate()+i);
+    const ds=d.toISOString().slice(0,10);
+    const isOn=d.toDateString()===planD.toDateString();
+    const isToday=i===0;
+    const haT=tasks.some(t=>t.date===ds&&!t.done);
+    const el=document.createElement('div');
+    el.className='wd'+(isOn?' on':'');
+    el.innerHTML='<div class="wdd">'+(isToday?'Today':dayNames[d.getDay()])+'</div>'
+      +'<div class="wdn">'+d.getDate()+'</div>'
+      +(haT?'<div class="wddt"></div>':'');
+    el.onclick=(function(dd){return function(){planD=new Date(dd);buildPlanner();};})(new Date(d));
+    strip.appendChild(el);
+    if(isOn)todayEl=el;
+  }
+  // Auto-scroll so selected date is centered
+  requestAnimationFrame(()=>{
+    const target=todayEl||strip.querySelector('.wd.on');
+    if(target){const sw=strip.offsetWidth;const ew=target.offsetWidth;strip.scrollLeft=target.offsetLeft-sw/2+ew/2;}
+  });
 }
 function renderTL(){
   const tl=document.getElementById('tlList');tl.innerHTML='';
   const ds=planD.toISOString().slice(0,10);
-  let dt=[...tasks].filter(t=>t.date===ds);
+  let dt=[...tasks].filter(t=>t.date===ds&&!(t.skipDates&&t.skipDates.includes(ds)));
   if(planFilter!=='all')dt=dt.filter(t=>(t.priority||'p2')===planFilter);
   dt.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   if(!dt.length){tl.innerHTML='<div class="epl">Nothing planned.<br><em>Add a task above.</em></div>';return;}
@@ -1893,7 +1932,65 @@ function savePl(){
   savT();if(rec&&rec!=='none')expandRecurring();closePl();planD=new Date(t.date+'T12:00:00');buildPlanner();buildCal();toast('Added to planner');
 }
 function togT(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;savT();renderOverdue();renderTL();buildWS();buildCal();}}
-function delT(id){tasks=tasks.filter(t=>t.id!==id);if(currentUser) db.collection('users').doc(currentUser.uid).collection('tasks').doc(id).delete();savT();renderOverdue();renderTL();buildWS();buildCal();toast('Task removed.');}
+
+// Smart delete — tracks which task is pending deletion
+let _pendingDelId=null;
+function delT(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t)return;
+  // Check if it's a recurring task (has recurring field set and not 'none')
+  const isRec=(t.recurring&&t.recurring!=='none')||t.parentId;
+  if(isRec){
+    _pendingDelId=id;
+    document.getElementById('delRecTitle').textContent=t.title;
+    document.getElementById('delRecOv').classList.add('op');
+  } else {
+    if(!confirm('Delete "'+t.title+'"?'))return;
+    _doDelete([id]);
+  }
+}
+function closeDelRecOv(){document.getElementById('delRecOv').classList.remove('op');_pendingDelId=null;}
+function delOnlyToday(){
+  if(!_pendingDelId)return;
+  closeDelRecOv();
+  const t=tasks.find(x=>x.id===_pendingDelId);
+  if(!t)return;
+  if(t.parentId){
+    // Generated child — just delete it entirely (it only exists for one date)
+    _doDelete([_pendingDelId]);
+  } else {
+    // Parent recurring task — add this date to skipDates so it won't show
+    t.skipDates=t.skipDates||[];
+    if(!t.skipDates.includes(t.date))t.skipDates.push(t.date);
+    savT();renderOverdue();renderTL();buildWS();buildCal();
+    toast('Skipped for today');
+  }
+  _pendingDelId=null;
+}
+async function delAllRecurring(){
+  if(!_pendingDelId)return;
+  closeDelRecOv();
+  const t=tasks.find(x=>x.id===_pendingDelId);
+  if(!t)return;
+  // Find parent id and all related tasks (parent + children)
+  const parentId=t.parentId||t.id;
+  const toDelete=tasks.filter(x=>x.id===parentId||x.parentId===parentId).map(x=>x.id);
+  await _doDelete(toDelete);
+  toast('Recurring task deleted');
+  _pendingDelId=null;
+}
+async function _doDelete(ids){
+  if(!currentUser)return;
+  const uid=currentUser.uid;
+  ids.forEach(id=>{tasks=tasks.filter(t=>t.id!==id);});
+  // Delete each from Firestore directly
+  try{
+    await Promise.all(ids.map(id=>db.collection('users').doc(uid).collection('tasks').doc(id).delete()));
+  }catch(e){console.error('delete error',e);}
+  await savT();
+  renderOverdue();renderTL();buildWS();buildCal();
+  if(ids.length===1)toast('Task removed.');
+}
 function setPriority(el){selPriority=el.dataset.pr;document.querySelectorAll('.pri-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
 function setPlanFilter(el){planFilter=el.dataset.pf;document.querySelectorAll('.pf-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderTL();}
 
@@ -2514,6 +2611,9 @@ window.renderOverdue=renderOverdue;
 window.editTask=editTask;
 window.togT=togT;
 window.delT=delT;
+window.closeDelRecOv=closeDelRecOv;
+window.delOnlyToday=delOnlyToday;
+window.delAllRecurring=delAllRecurring;
 window.canvasDeselect=canvasDeselect;
 window.delNoteImg=delNoteImg;
 window.imgBlockDown=imgBlockDown;
@@ -2550,7 +2650,7 @@ function buildProf(){
   applyTheme();
 }
 
-['neOv','roomOv','plOv','moveRoomOv','habitOv','moreOv'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('op');});});
+['neOv','roomOv','plOv','moveRoomOv','habitOv','moreOv','delRecOv'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('op');});});
 function toast(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2400);}
 function fmtS(ts){return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
 function fmtL(ts){return new Date(ts).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
