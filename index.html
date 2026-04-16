@@ -174,7 +174,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 .emp{text-align:center;padding:60px 18px;font-family:'DM Serif Display',serif;font-style:italic;font-size:15px;color:var(--MUT)}
 
 /* ─── PAGE VIEW (Apple Notes style) ─── */
-#pageView{background:var(--BG)}
+#pageView{background:var(--BG);display:flex;flex-direction:column;height:100%}
 .pvh{background:var(--S1);padding:50px 18px 18px;border-bottom:1px solid var(--BR);flex-shrink:0}
 .pvhrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .pvbk{font-size:13px;color:var(--MUT);cursor:pointer;display:flex;align-items:center;gap:6px}
@@ -183,7 +183,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 .pvtitle{font-family:'DM Serif Display',serif;font-size:22px;color:var(--INK)}
 .pvmeta{font-size:11px;color:var(--MUT);margin-top:3px;display:flex;align-items:center;gap:8px}
 .pvmood{font-size:15px}
-.pvbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pvbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-padding-bottom:80px}
 .pv-menu-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--BR);background:var(--S2);color:var(--INK);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .pv-menu{display:none;position:absolute;right:0;top:50px;min-width:198px;padding:8px 0;background:var(--S1);border:1px solid rgba(255,255,255,.16);border-radius:18px;box-shadow:0 18px 45px rgba(0,0,0,.14);z-index:30;overflow:hidden}
 .pv-menu-item{width:100%;padding:12px 14px;border:none;background:transparent;color:var(--INK);text-align:left;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;outline:none;transition:background .18s}
@@ -243,11 +243,31 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 
 /* EDIT MODE inside page view — inline editing */
 .notes-edit-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--INK);background:transparent;border:none;outline:none;width:100%;margin-bottom:6px;padding:0}
-.notes-edit-body{font-family:'DM Serif Display',serif;font-size:17px;line-height:2;color:var(--INK);background:transparent;border:none;outline:none;resize:none;width:100%;min-height:220px;position:relative;z-index:1;padding:0}
+.notes-edit-body{font-family:'DM Serif Display',serif;font-size:17px;line-height:2;color:var(--INK);background:transparent;border:none;outline:none;resize:none;width:100%;min-height:calc(100vh - 320px);padding:0;display:block}
+.pv-title-edit{font-family:'DM Serif Display',serif;font-size:22px;color:var(--INK);background:transparent;border:none;outline:none;width:100%;padding:0;display:block}
 .notes-edit-bar{padding:10px 16px;border-top:1px solid var(--BR);display:flex;align-items:center;gap:8px;background:var(--S1);flex-wrap:wrap}
 .neb-btn{padding:7px 12px;border-radius:9px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--BR);background:var(--S2);color:var(--MUTH)}
 .neb-btn.pri{background:var(--M);color:#fff;border-color:var(--M)}
 .neb-btn.del{color:#ff6b6b;border-color:rgba(255,107,107,.2)}
+/* ─── PAPER CARD (view + edit mode) ─── */
+.pg-paper{min-height:calc(100vh - 180px);padding:24px 28px 100px 60px;position:relative;background-image:repeating-linear-gradient(to bottom,transparent,transparent 31px,var(--BR) 31px,var(--BR) 32px);background-position:0 20px}
+.pg-paper::before{content:'';position:absolute;left:44px;top:0;bottom:0;width:1px;background:rgba(201,24,74,.22);pointer-events:none}
+.pg-body-text{font-family:'DM Serif Display',serif;font-size:17px;line-height:2;color:var(--INK);white-space:pre-wrap;min-height:200px;word-break:break-word}
+.pg-empty{color:var(--MUT);font-style:italic}
+.pg-img-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.pg-img-item{position:relative;border-radius:10px;overflow:hidden;width:140px;height:110px;flex-shrink:0}
+.pg-img-item img{width:100%;height:100%;object-fit:cover;display:block}
+.pg-img-item .blk-del{position:absolute;top:-8px;left:-8px;width:22px;height:22px;background:#ff4d4d;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--S1);z-index:10;line-height:1}
+.pg-wc{text-align:right;font-size:11px;color:var(--MUT);padding:10px 0 0;user-select:none;letter-spacing:.03em}
+.pg-as{font-size:11px;min-width:60px;text-align:right;transition:color .3s}
+.pg-as.saving{color:var(--MUTH)}
+.pg-as.saved{color:#06d6a0}
+@media(max-width:768px){
+  .pg-paper{padding:16px 16px 100px 54px}
+  .pg-paper::before{left:40px}
+  .notes-edit-body{font-size:16px}
+  .pg-body-text{font-size:16px}
+}
 
 /* ─── CALENDAR ─── */
 .cw{padding:16px}
@@ -724,6 +744,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
       <div style="display:flex;align-items:center;gap:12px">
         <div class="pvbk" onclick="closePage()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Back</div>
         <div class="pvedit" id="pvEditBtn" onclick="togglePageEdit()">Edit</div>
+        <span id="pvAutoSave" class="pg-as"></span>
       </div>
       <div style="position:relative;">
         <button id="pvMenuBtn" class="pv-menu-btn" onclick="togglePageMenu(event)">⋮</button>
@@ -1431,10 +1452,11 @@ function renderRoom(){
 function openPage(id, editFirst){
   const e=entries.find(x=>x.id===id);if(!e)return;
   curPageId=id;
-  document.getElementById('pvT').textContent=e.title;
-  document.getElementById('pvM').innerHTML=fmtL(e.ts)+(e.mood?'<span class="pvmood" style="margin-left:8px">'+e.mood+'</span>':'');
+  document.getElementById('pvAutoSave').textContent='';
+  document.getElementById('pvAutoSave').className='pg-as';
   if(editFirst){
     pageEditMode=true;
+    document.getElementById('pvTitleWrap').innerHTML='<input class="pv-title-edit" id="pvTitleEdit" value="'+esc(e.title)+'">';
     document.getElementById('pvEditBtn').textContent='Done';
     window._editImgs=[...e.images||[]];
     window._editLayout=getImgLayout(e.id).map(l=>({...l}));
@@ -1442,6 +1464,7 @@ function openPage(id, editFirst){
     renderEditCanvas(e);
   } else {
     pageEditMode=false;
+    document.getElementById('pvTitleWrap').innerHTML='<div class="pvtitle" id="pvT">'+esc(e.title)+'</div><div class="pvmeta" id="pvM">'+fmtL(e.ts)+(e.mood?'<span class="pvmood" style="margin-left:8px">'+e.mood+'</span>':'')+'</div>';
     document.getElementById('pvEditBtn').textContent='Edit';
     renderPageView(e);
   }
@@ -1449,23 +1472,22 @@ function openPage(id, editFirst){
 }
 function renderPageView(e){
   const body=document.getElementById('pvBody');
-  const layout=getImgLayout(e.id);
-  let canvasH=Math.max(1200,window.innerHeight*2);
-  if(layout.length)canvasH=Math.max(canvasH,...layout.map((l,i)=>(l.y||0)+(l.h||120)+60));
-  let html='<div class="free-canvas" id="freeCanvas" style="height:'+canvasH+'px">';
-  for(let i=0;i<60;i++)html+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04);pointer-events:none"></div>';
-  html+='<div style="position:absolute;left:44px;top:0;bottom:0;width:1px;background:rgba(201,24,74,.18);pointer-events:none"></div>';
-  const tl=e.textLayout||{x:56,y:20,w:Math.max(600,window.innerWidth-120)};
-  html+='<div class="free-block text-block" id="fb_text" style="left:'+tl.x+'px;top:'+tl.y+'px;width:'+tl.w+'px"><div style="font-family:\'DM Serif Display\',serif;font-size:16px;line-height:1.9;color:var(--INK);white-space:pre-wrap;padding:4px 6px;min-height:40px">'+(e.content||'<span style="color:var(--MUT);font-style:italic">No text yet. Tap Edit to write.</span>')+'</div></div>';
-  if(e.images&&e.images.length){e.images.forEach((src,i)=>{const l=layout[i]||{x:60+i*20,y:200+i*20,w:180,h:140};html+='<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px"><img src="'+src+'"></div>';});}
-  html+='</div>';
-  body.innerHTML=html;
+  let imgHtml='';
+  if(e.images&&e.images.length){
+    imgHtml='<div class="pg-img-grid">'+e.images.map(src=>'<div class="pg-img-item"><img src="'+src+'"></div>').join('')+'</div>';
+  }
+  body.innerHTML='<div class="pg-paper">'
+    +(e.content?'<div class="pg-body-text">'+esc(e.content)+'</div>':'<div class="pg-body-text pg-empty">No text yet. Tap Edit to write.</div>')
+    +imgHtml+'</div>';
 }
 function linesHTML(){let h='<div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">';for(let i=0;i<80;i++)h+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04)"></div>';h+='</div>';return h;}
 function togglePageEdit(){
   const e=entries.find(x=>x.id===curPageId);if(!e)return;
   if(!pageEditMode){
-    pageEditMode=true;document.getElementById('pvEditBtn').textContent='Done';
+    pageEditMode=true;
+    document.getElementById('pvTitleWrap').innerHTML='<input class="pv-title-edit" id="pvTitleEdit" value="'+esc(e.title)+'">';
+    document.getElementById('pvEditBtn').textContent='Done';
+    document.getElementById('pvAutoSave').textContent='';
     window._editImgs=[...e.images||[]];
     window._editLayout=getImgLayout(e.id).map(l=>({...l}));
     window._textLayout=e.textLayout?{...e.textLayout}:{x:56,y:20,w:Math.max(600,window.innerWidth-120)};
@@ -1474,29 +1496,16 @@ function togglePageEdit(){
 }
 function renderEditCanvas(e){
   const body=document.getElementById('pvBody');
-  const layout=window._editLayout||[];
-  let canvasH=Math.max(1200,window.innerHeight*2);
-  if(layout.length)canvasH=Math.max(canvasH,...layout.map((l,i)=>(l.y||0)+(l.h||120)+80));
-  const tw=window._textLayout.w||Math.max(600,window.innerWidth-120);
-  const th=Math.max(200,((e.content||'').split('\n').length+3)*32);
-  let html='<div class="free-canvas" id="freeCanvas" style="height:'+canvasH+'px;min-height:600px" onclick="window.canvasDeselect(event)">';
-  for(let i=0;i<80;i++)html+='<div style="position:absolute;left:0;right:0;top:'+(20+i*32)+'px;height:1px;background:rgba(255,255,255,.04);pointer-events:none"></div>';
-  html+='<div style="position:absolute;left:44px;top:0;bottom:0;width:1px;background:rgba(201,24,74,.18);pointer-events:none"></div>';
-  html+='<div class="free-block text-block" id="fb_text" style="left:'+window._textLayout.x+'px;top:'+window._textLayout.y+'px;width:'+tw+'px" onpointerdown="window.textBlockDown(event)">'
-    +'<textarea class="notes-edit-body" id="editBody" style="min-height:'+th+'px" placeholder="Write here..." oninput="window.autoGrowTA(this)">'+esc(e.content)+'</textarea>'
-    +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.textRszDown(event)"></div>'
-    +'</div>';
-  (window._editImgs||[]).forEach((src,i)=>{
-    const l=layout[i]||{x:60+i*22,y:220+i*22,w:180,h:140};
-    html+='<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px" onpointerdown="window.imgBlockDown(event,'+i+')">'
-      +'<img src="'+src+'"><div class="img-sel-ring"></div>'
-      +'<div class="blk-del" onclick="event.stopPropagation();window.delNoteImg('+i+')">×</div>'
-      +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.rszDown(event,'+i+')"></div>'
-      +'</div>';
-  });
-  html+='</div>';
-  body.innerHTML=html;
-  setTimeout(()=>{const ta=document.getElementById('editBody');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}},50);
+  const wc=pgWordCount(e.content||'');
+  let imgHtml='';
+  if((window._editImgs||[]).length){
+    imgHtml='<div class="pg-img-grid">'+(window._editImgs||[]).map((src,i)=>'<div class="pg-img-item"><img src="'+src+'"><div class="blk-del" onclick="event.stopPropagation();window.delNoteImg('+i+')">×</div></div>').join('')+'</div>';
+  }
+  body.innerHTML='<div class="pg-paper">'
+    +'<textarea class="notes-edit-body" id="editBody" placeholder="Write here..." oninput="window.onEditInput(this)">'+esc(e.content)+'</textarea>'
+    +'<div class="pg-wc" id="pgWC">'+wc+' word'+(wc!==1?'s':'')+'</div>'
+    +imgHtml+'</div>';
+  setTimeout(()=>{const ta=document.getElementById('editBody');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';ta.focus();}},80);
 }
 function autoGrowTA(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';const canvas=document.getElementById('freeCanvas');const fb=document.getElementById('fb_text');if(canvas&&fb){const needed=parseInt(fb.style.top)+fb.offsetHeight+80;if(needed>canvas.offsetHeight)canvas.style.height=needed+'px';}}
 // Text block drag
@@ -1605,24 +1614,56 @@ function handleMenuDelete(){
 }
 window.handleMenuDelete = handleMenuDelete;
 function cancelEdit(){
+  clearTimeout(autoSaveTimer);
   pageEditMode=false;
-  const e=entries.find(x=>x.id===curPageId);if(e)renderPageView(e);
+  const e=entries.find(x=>x.id===curPageId);
+  document.getElementById('pvAutoSave').textContent='';
+  document.getElementById('pvAutoSave').className='pg-as';
+  document.getElementById('pvTitleWrap').innerHTML='<div class="pvtitle" id="pvT">'+esc(e?e.title:'')+'</div><div class="pvmeta" id="pvM">'+(e?fmtL(e.ts)+(e.mood?'<span class="pvmood" style="margin-left:8px">'+e.mood+'</span>':''):'')+'</div>';
   document.getElementById('pvEditBtn').textContent='Edit';
+  if(e)renderPageView(e);
 }
 function saveInlineEdit(){
+  clearTimeout(autoSaveTimer);
   const e=entries.find(x=>x.id===curPageId);if(!e)return;
-  _commitImgLayout();
   const bo=document.getElementById('editBody');
   if(bo)e.content=bo.value;
+  const ti=document.getElementById('pvTitleEdit');
+  if(ti&&ti.value.trim())e.title=ti.value.trim();
   if(window._editImgs)e.images=window._editImgs;
-  // Save text block position
-  if(window._textLayout)e.textLayout=window._textLayout;
   savE();pageEditMode=false;
+  document.getElementById('pvAutoSave').textContent='';
+  document.getElementById('pvAutoSave').className='pg-as';
+  document.getElementById('pvTitleWrap').innerHTML='<div class="pvtitle" id="pvT">'+esc(e.title)+'</div><div class="pvmeta" id="pvM">'+fmtL(e.ts)+(e.mood?'<span class="pvmood" style="margin-left:8px">'+e.mood+'</span>':'')+'</div>';
   document.getElementById('pvEditBtn').textContent='Edit';
   renderPageView(e);
   if(curRoom)renderRoom();buildDash();
   toast('Saved');
 }
+let autoSaveTimer=null;
+function pgWordCount(str){return (str||'').trim().split(/\s+/).filter(Boolean).length;}
+function onEditInput(ta){
+  ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
+  const wc=pgWordCount(ta.value);
+  const wcEl=document.getElementById('pgWC');
+  if(wcEl)wcEl.textContent=wc+' word'+(wc!==1?'s':'');
+  const asEl=document.getElementById('pvAutoSave');
+  if(asEl){asEl.textContent='Saving...';asEl.className='pg-as saving';}
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(()=>silentSave(),2000);
+}
+function silentSave(){
+  const e=entries.find(x=>x.id===curPageId);if(!e)return;
+  const bo=document.getElementById('editBody');
+  if(bo)e.content=bo.value;
+  const ti=document.getElementById('pvTitleEdit');
+  if(ti&&ti.value.trim())e.title=ti.value.trim();
+  savE();
+  const asEl=document.getElementById('pvAutoSave');
+  if(asEl){asEl.textContent='Saved ✓';asEl.className='pg-as saved';setTimeout(()=>{if(asEl){asEl.textContent='';asEl.className='pg-as';}},1500);}
+}
+window.silentSave=silentSave;
+window.onEditInput=onEditInput;
 function esc(str){return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function closePage(){document.getElementById('pageView').classList.add('hidden');}
