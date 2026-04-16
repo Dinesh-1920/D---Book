@@ -204,7 +204,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 .free-block.text-block{padding:4px 6px;border-radius:6px;border:1.5px solid transparent;cursor:text}
 .free-block.text-block.selected{border-color:var(--M);background:rgba(201,24,74,.04)}
 .free-block.text-block textarea{font-family:'DM Serif Display',serif;font-size:16px;line-height:1.8;color:var(--INK);background:transparent;border:none;outline:none;resize:none;width:100%;min-height:28px;cursor:text;padding:0}
-.free-block.img-block{cursor:grab}
+.free-block.img-block{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .free-block.img-block:active{cursor:grabbing}
 .free-block.img-block img{display:block;width:100%;height:100%;object-fit:cover;border-radius:8px;pointer-events:none}
 .free-block .blk-del{position:absolute;top:-10px;left:-10px;width:22px;height:22px;background:#ff4d4d;border-radius:50%;display:none;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--S1);z-index:10;line-height:1}
@@ -243,7 +243,7 @@ html,body{height:100%;width:100%;font-family:'DM Sans',sans-serif;background:var
 
 /* EDIT MODE inside page view — inline editing */
 .notes-edit-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--INK);background:transparent;border:none;outline:none;width:100%;margin-bottom:6px;padding:0}
-.notes-edit-body{font-family:'DM Serif Display',serif;font-size:17px;line-height:2;color:var(--INK);background:transparent;border:none;outline:none;resize:none;width:100%;min-height:calc(100vh - 320px);padding:0;display:block}
+.notes-edit-body{font-family:'DM Serif Display',serif;font-size:17px;line-height:2;color:var(--INK);background:transparent;border:none;outline:none;resize:none;width:100%;min-height:300px;padding:0;display:block;position:relative;z-index:1}
 .pv-title-edit{font-family:'DM Serif Display',serif;font-size:22px;color:var(--INK);background:transparent;border:none;outline:none;width:100%;padding:0;display:block}
 .notes-edit-bar{padding:10px 16px;border-top:1px solid var(--BR);display:flex;align-items:center;gap:8px;background:var(--S1);flex-wrap:wrap}
 .neb-btn{padding:7px 12px;border-radius:9px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--BR);background:var(--S2);color:var(--MUTH)}
@@ -1520,24 +1520,26 @@ function renderEditCanvas(e){
   const body=document.getElementById('pvBody');
   const wc=pgWordCount(e.content||'');
   const layout=window._editLayout||[];
-  let imgSection='';
-  if((window._editImgs||[]).length){
-    const canvasH=Math.max(180,...(window._editImgs||[]).map((_,i)=>{const l=layout[i];return ((l&&l.y)||10+i*22)+((l&&l.h)||120);}))+30;
-    imgSection='<div id="freeCanvas" style="position:relative;height:'+canvasH+'px;min-height:'+canvasH+'px;margin-top:8px">'
-      +(window._editImgs||[]).map((src,i)=>{
-        const l=layout[i]||{x:10+i*22,y:10+i*22,w:160,h:120};
-        return '<div class="free-block img-block" id="fb_img_'+i+'" style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px" onpointerdown="window.imgBlockDown(event,'+i+')">'
-          +'<img src="'+src+'"><div class="img-sel-ring"></div>'
-          +'<div class="blk-del" onclick="event.stopPropagation();window.delNoteImg('+i+')">×</div>'
-          +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.rszDown(event,'+i+')"></div>'
-          +'</div>';
-      }).join('')+'</div>';
-  }
-  body.innerHTML='<div class="pg-paper">'
+  // Images are position:absolute inside the canvas — they float over text
+  const imgHtml=(window._editImgs||[]).map((src,i)=>{
+    const l=layout[i]||{x:10+i*180,y:20,w:160,h:120};
+    return '<div class="free-block img-block" id="fb_img_'+i+'"'
+      +' style="left:'+l.x+'px;top:'+l.y+'px;width:'+l.w+'px;height:'+l.h+'px;touch-action:none"'
+      +' onpointerdown="window.imgBlockDown(event,'+i+')">'
+      +'<img src="'+src+'"><div class="img-sel-ring"></div>'
+      +'<div class="blk-del" onclick="event.stopPropagation();window.delNoteImg('+i+')">×</div>'
+      +'<div class="blk-rsz" onpointerdown="event.stopPropagation();window.rszDown(event,'+i+')"></div>'
+      +'</div>';
+  }).join('');
+  // Single canvas: textarea in normal flow (sets height), images absolute on top (z-index:5)
+  body.innerHTML='<div id="editCanvas" class="pg-paper" style="position:relative" onclick="window.canvasDeselect(event)">'
     +'<textarea class="notes-edit-body" id="editBody" placeholder="Write here..." oninput="window.onEditInput(this)">'+esc(e.content)+'</textarea>'
     +'<div class="pg-wc" id="pgWC">'+wc+' word'+(wc!==1?'s':'')+'</div>'
-    +imgSection+'</div>';
-  setTimeout(()=>{const ta=document.getElementById('editBody');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';ta.focus();}},80);
+    +imgHtml+'</div>';
+  setTimeout(()=>{
+    const ta=document.getElementById('editBody');
+    if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';ta.focus();}
+  },80);
 }
 function autoGrowTA(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';const canvas=document.getElementById('freeCanvas');const fb=document.getElementById('fb_text');if(canvas&&fb){const needed=parseInt(fb.style.top)+fb.offsetHeight+80;if(needed>canvas.offsetHeight)canvas.style.height=needed+'px';}}
 // Text block drag
@@ -1550,7 +1552,7 @@ let _trDragging=false,_trOx=0,_trW0=0;
 function textRszDown(e){e.preventDefault();_trDragging=true;const fb=document.getElementById('fb_text');if(!fb)return;_trOx=e.clientX;_trW0=fb.offsetWidth;fb.setPointerCapture(e.pointerId);fb.addEventListener('pointermove',_textRszMove);fb.addEventListener('pointerup',_textRszUp);}
 function _textRszMove(e){if(!_trDragging)return;e.preventDefault();const fb=document.getElementById('fb_text');if(!fb)return;const nw=Math.max(120,_trW0+(e.clientX-_trOx));fb.style.width=nw+'px';if(window._textLayout)window._textLayout={...window._textLayout,w:nw};}
 function _textRszUp(e){_trDragging=false;const fb=document.getElementById('fb_text');if(fb){fb.removeEventListener('pointermove',_textRszMove);fb.removeEventListener('pointerup',_textRszUp);}}
-function canvasDeselect(e){if(e.target.id==='freeCanvas')document.querySelectorAll('.free-block').forEach(b=>b.classList.remove('selected'));}
+function canvasDeselect(e){if(e.target.id==='editCanvas'||e.target.id==='freeCanvas')document.querySelectorAll('.free-block').forEach(b=>b.classList.remove('selected'));}
 function handleEditPhotos(ev){
   const files=Array.from(ev.target.files);
   if(!files.length)return;
@@ -1676,6 +1678,9 @@ let autoSaveTimer=null;
 function pgWordCount(str){return (str||'').trim().split(/\s+/).filter(Boolean).length;}
 function onEditInput(ta){
   ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
+  // Grow canvas so images can still float below textarea if needed
+  const canvas=document.getElementById('editCanvas');
+  if(canvas){const needed=ta.offsetTop+ta.scrollHeight+80;if(needed>canvas.offsetHeight)canvas.style.minHeight=needed+'px';}
   const wc=pgWordCount(ta.value);
   const wcEl=document.getElementById('pgWC');
   if(wcEl)wcEl.textContent=wc+' word'+(wc!==1?'s':'');
@@ -2348,13 +2353,13 @@ function buildPhotoEditCanvas(imgs,eid){
 let _dragIdx=-1,_dragOx=0,_dragOy=0,_dragEl=null;
 let _rszIdx=-1,_rszOx=0,_rszOy=0,_rszW0=0,_rszH0=0;
 
+function _getEditCanvas(){return document.getElementById('editCanvas')||document.getElementById('freeCanvas');}
 function imgBlockDown(e,idx){
   if(e.target.closest('.blk-del')||e.target.closest('.blk-rsz'))return;
-  e.stopPropagation();
-  document.querySelectorAll('.free-block').forEach((b,i)=>b.classList.toggle('selected',b.id==='fb_img_'+idx));
+  e.stopPropagation();e.preventDefault();
+  document.querySelectorAll('.free-block').forEach(b=>b.classList.toggle('selected',b.id==='fb_img_'+idx));
   _dragIdx=idx;_dragEl=document.getElementById('fb_img_'+idx);
   if(!_dragEl)return;
-  const canvas=document.getElementById('freeCanvas');if(!canvas)return;
   const br=_dragEl.getBoundingClientRect();
   _dragOx=e.clientX-br.left;_dragOy=e.clientY-br.top;
   _dragEl.setPointerCapture(e.pointerId);
@@ -2364,13 +2369,14 @@ function imgBlockDown(e,idx){
 function imgBlockMove(e){
   if(_dragIdx<0||!_dragEl)return;
   e.preventDefault();
-  const canvas=document.getElementById('freeCanvas');if(!canvas)return;
+  const canvas=_getEditCanvas();if(!canvas)return;
   const cr=canvas.getBoundingClientRect();
   const x=Math.max(0,e.clientX-cr.left-_dragOx);
   const y=Math.max(0,e.clientY-cr.top-_dragOy);
   _dragEl.style.left=x+'px';_dragEl.style.top=y+'px';
-  const needed=y+_dragEl.offsetHeight+20;
-  if(needed>canvas.offsetHeight)canvas.style.height=needed+'px';
+  // Grow canvas if image dragged below current bottom
+  const needed=y+_dragEl.offsetHeight+40;
+  if(needed>canvas.offsetHeight)canvas.style.minHeight=needed+'px';
 }
 function imgBlockUp(e){
   if(_dragIdx<0||!_dragEl)return;
@@ -2378,6 +2384,8 @@ function imgBlockUp(e){
   _dragEl.removeEventListener('pointerup',imgBlockUp);
   _commitImgLayout();_dragIdx=-1;_dragEl=null;
 }
+window.imgBlockUp=imgBlockUp;
+window.imgBlockMove=imgBlockMove;
 function rszDown(e,idx){
   e.stopPropagation();e.preventDefault();
   _rszIdx=idx;
@@ -2394,9 +2402,9 @@ function rszMove(e){
   const nw=Math.max(60,_rszW0+(e.clientX-_rszOx));
   const nh=Math.max(50,_rszH0+(e.clientY-_rszOy));
   el.style.width=nw+'px';el.style.height=nh+'px';
-  const canvas=document.getElementById('freeCanvas');
-  const needed=el.offsetTop+nh+20;
-  if(canvas&&needed>canvas.offsetHeight)canvas.style.height=needed+'px';
+  const canvas=_getEditCanvas();
+  const needed=el.offsetTop+nh+40;
+  if(canvas&&needed>canvas.offsetHeight)canvas.style.minHeight=needed+'px';
 }
 function rszUp(e){
   if(_rszIdx<0)return;
