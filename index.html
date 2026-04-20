@@ -1205,14 +1205,16 @@ function setupRealtimeSync(){
       if(!_realtimeReady)return;
       let changed=false;
       snapshot.docChanges().forEach(change=>{
-        const task={...change.doc.data(),id:change.doc.id};
-        if(change.type==='added'||change.type==='modified'){
-          const idx=tasks.findIndex(t=>t.id===task.id);
-          if(idx!==-1){tasks[idx]=task;}else{tasks.push(task);}
-          changed=true;
-        } else if(change.type==='removed'){
+        if(change.type==='removed'){
           tasks=tasks.filter(t=>t.id!==change.doc.id);
           changed=true;
+        } else if(change.type==='modified'){
+          const task={...change.doc.data(),id:change.doc.id};
+          const idx=tasks.findIndex(t=>t.id===task.id);
+          if(idx!==-1){tasks[idx]=task;changed=true;}
+        } else if(change.type==='added'){
+          const task={...change.doc.data(),id:change.doc.id};
+          if(!tasks.find(t=>t.id===task.id)){tasks.push(task);changed=true;}
         }
       });
       if(changed){
@@ -1371,7 +1373,8 @@ function expandRecurring(){
       else if(t.recurring==='weekdays')ok=wd>=1&&wd<=5;
       else if(t.recurring==='weekly')ok=wd===base.getDay();
       else if(t.recurring==='custom'&&t.recDays)ok=t.recDays.includes(wd);
-      if(ok&&!tasks.find(x=>x.parentId===t.id&&x.date===ds)){
+      const skipped=t.skipDates&&t.skipDates.includes(ds);
+      if(ok&&!skipped&&!tasks.find(x=>x.parentId===t.id&&x.date===ds)){
         tasks.push({id:Date.now().toString()+Math.random().toString(36).slice(2),title:t.title,note:t.note,date:ds,time:t.time,type:t.type,done:false,parentId:t.id,recurring:'none',recDays:[]});
       }
     }
@@ -2125,7 +2128,15 @@ function savePl(){
   if(editPid){const i=tasks.findIndex(x=>x.id===editPid);if(i!==-1)tasks[i]=t;}else{tasks.push(t);if(rec&&rec!=='none')expandRecurring();}
   savT();closePl();planD=new Date(t.date+'T00:00:00');buildPlanner();buildCal();toast(editPid?'Task updated':'Added to planner');
 }
-function togT(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;savT();renderOverdue();renderTL();buildWS();buildCal();}}
+async function togT(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.done=!t.done;
+  if(currentUser){
+    try{await db.collection('users').doc(currentUser.uid).collection('tasks').doc(id).set({done:t.done},{merge:true});}
+    catch(e){console.error('togT error',e);}
+  }
+  renderOverdue();renderTL();buildWS();buildCal();
+}
 
 function delT(id){
   const t=tasks.find(x=>x.id===id);
@@ -2144,16 +2155,21 @@ function delT(id){
   }
 }
 function closeDeletePopup(){document.getElementById('delRecOv').classList.remove('op');document.getElementById('delRecButtons').innerHTML='';}
-function deleteOnlyToday(id){
+async function deleteOnlyToday(id){
   closeDeletePopup();
   const t=tasks.find(x=>x.id===id);
   if(!t)return;
   if(t.parentId){
+    // _doDelete already handles skipDates for parentId children
     _doDelete([id]);
   } else {
     t.skipDates=t.skipDates||[];
     if(!t.skipDates.includes(t.date))t.skipDates.push(t.date);
-    savT();renderOverdue();renderTL();buildWS();buildCal();
+    if(currentUser){
+      try{await db.collection('users').doc(currentUser.uid).collection('tasks').doc(t.id).set({skipDates:t.skipDates},{merge:true});}
+      catch(e){console.error('skipDates save error',e);}
+    }
+    renderOverdue();renderTL();buildWS();buildCal();
     toast('Skipped for today');
   }
 }
@@ -2174,10 +2190,25 @@ async function deleteAllRecurring(id){
 async function _doDelete(ids){
   if(!currentUser)return;
   const uid=currentUser.uid;
+  // For recurring children: record deleted date in parent's skipDates so expandRecurring won't re-create them
+  for(const id of ids){
+    const t=tasks.find(x=>x.id===id);
+    if(t&&t.parentId){
+      const parent=tasks.find(x=>x.id===t.parentId);
+      if(parent&&t.date){
+        parent.skipDates=parent.skipDates||[];
+        if(!parent.skipDates.includes(t.date)){
+          parent.skipDates.push(t.date);
+          try{await db.collection('users').doc(uid).collection('tasks').doc(parent.id).set({skipDates:parent.skipDates},{merge:true});}
+          catch(e){console.error('skipDates save error',e);}
+        }
+      }
+    }
+  }
   ids.forEach(id=>{tasks=tasks.filter(t=>t.id!==id);});
   try{await Promise.all(ids.map(id=>db.collection('users').doc(uid).collection('tasks').doc(id).delete()));}
   catch(e){console.error('delete error',e);}
-  await savT();
+  // No savT() — direct delete is sufficient; savT() batch-write after delete causes race conditions
   renderOverdue();renderTL();buildWS();buildCal();
   toast('Task removed.');
 }
