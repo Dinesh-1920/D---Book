@@ -1156,7 +1156,9 @@ async function loadFromCloud(){
     console.error('Load error',e);
     entries=[];tasks=[];rooms=JSON.parse(JSON.stringify(DEFAULT_ROOMS));habits=[];
   }
-  trackSession();expandRecurring();
+  trackSession();
+  // Do NOT call expandRecurring() here — instances are stored permanently in Firestore
+  // and calling it on every load re-creates deleted instances
 }
 async function forceSync(){
   const btn=document.getElementById('syncBtn');
@@ -1361,6 +1363,8 @@ async function load(){
 function trackSession(){const today=new Date().toISOString().slice(0,10);let s=JSON.parse(localStorage.getItem('dlv5_sess')||'{}');s[today]=(s[today]||0)+1;localStorage.setItem('dlv5_sess',JSON.stringify(s));}
 
 function expandRecurring(){
+  // Only called when a NEW recurring task is created (from savePl)
+  // Never called on load — instances live permanently in Firestore
   const today=new Date();
   tasks.filter(t=>t.recurring&&t.recurring!=='none'&&!t.parentId).forEach(t=>{
     const base=new Date(t.date+'T12:00:00');
@@ -1374,7 +1378,8 @@ function expandRecurring(){
       else if(t.recurring==='weekly')ok=wd===base.getDay();
       else if(t.recurring==='custom'&&t.recDays)ok=t.recDays.includes(wd);
       const skipped=t.skipDates&&t.skipDates.includes(ds);
-      if(ok&&!skipped&&!tasks.find(x=>x.parentId===t.id&&x.date===ds)){
+      const alreadyExists=tasks.some(x=>(x.parentId===t.id||x.title===t.title)&&x.date===ds);
+      if(ok&&!skipped&&!alreadyExists){
         tasks.push({id:Date.now().toString()+Math.random().toString(36).slice(2),title:t.title,note:t.note,date:ds,time:t.time,type:t.type,done:false,parentId:t.id,recurring:'none',recDays:[]});
       }
     }
@@ -1446,7 +1451,6 @@ async function openApp(){
   _setGreeting();
   // Load cached data for instant display
   _loadCache();
-  expandRecurring();
   _buildAllTabs();
   // Set up real-time listeners
   setupRealtimeSync();
@@ -1926,7 +1930,6 @@ window.moveToRoom=moveToRoom;
 // ── CALENDAR ──────────────────────────────────────────────
 function calNav(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}selCalDs=null;buildCal();}
 function buildCal(){
-  expandRecurring(); // ensure all recurring instances exist
   const mns=['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('calTi').textContent=mns[calM]+' '+calY;
   const dEl=document.getElementById('calD');dEl.innerHTML='';
@@ -2026,7 +2029,7 @@ function renderOverdue(){
   const sec=document.getElementById('overdueSection');
   if(!sec)return;
   const todayStr=new Date().toISOString().slice(0,10);
-  const overdue=tasks.filter(t=>!t.done&&t.date&&t.date<todayStr)
+  const overdue=tasks.filter(t=>!t.done&&t.date&&t.date<todayStr&&!(t.skipDates&&t.skipDates.includes(t.date)))
     .sort((a,b)=>(PRIORITY_ORDER[a.priority||'p2']-PRIORITY_ORDER[b.priority||'p2'])||a.date.localeCompare(b.date));
   if(!overdue.length){sec.innerHTML='';return;}
   let html='<div class="overdue-section"><div class="overdue-header">Overdue & Pending ('+overdue.length+')</div>';
